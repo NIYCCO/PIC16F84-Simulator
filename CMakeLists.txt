@@ -35,4 +35,4 @@ add_executable(
     ${SOURCE_FILES}
 )
 
-target_link_libraries(pic16F84_sim PRIVATE imgui glfw OpenGL::GL)
+target_link_libraries(pic16F84_sim PRIVATE imgui)
