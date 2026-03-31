@@ -14,14 +14,16 @@ void ProgramMemory::loadFromFile(const std::string& filename) {
     std::ifstream file(filename);
 
     if (!file.is_open()) {
-        std::cout << "Fehler beim Öffnen der Datei!\n";
+        std::cout << "Fehler beim Oeffnen der Datei!\n";
         return;
     }
 
     std::string line;
 
     while (std::getline(file, line)) {
-        if (line.length() < 9) continue;
+        if (line.length() < 9) {
+            continue;
+        }
 
         try {
             std::string address_str = line.substr(0, 4);
@@ -35,14 +37,14 @@ void ProgramMemory::loadFromFile(const std::string& filename) {
                 used[address] = true;
             }
         } catch (...) {
-            // ignorieren
+            // ungueltige Zeilen ignorieren
         }
     }
 
     file.close();
 }
 
-void ProgramMemory::printMemory() {
+void ProgramMemory::printMemory() const {
     std::cout << "Eingelesene Befehle:\n";
 
     for (int i = 0; i < 1024; i++) {
@@ -55,4 +57,18 @@ void ProgramMemory::printMemory() {
                       << std::endl;
         }
     }
+}
+
+int ProgramMemory::getInstruction(int address) const {
+    if (address < 0 || address >= 1024) {
+        return 0;
+    }
+    return memory[address];
+}
+
+bool ProgramMemory::isUsed(int address) const {
+    if (address < 0 || address >= 1024) {
+        return false;
+    }
+    return used[address];
 }

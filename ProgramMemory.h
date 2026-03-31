@@ -12,7 +12,10 @@ public:
     ProgramMemory();
 
     void loadFromFile(const std::string& filename);
-    void printMemory();
+    void printMemory() const;
+
+    int getInstruction(int address) const;
+    bool isUsed(int address) const;
 };
 
 #endif
