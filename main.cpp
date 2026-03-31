@@ -23,8 +23,8 @@ int main(int argc, char* argv[]) {
     CPU cpu(pm);
     cpu.printState();
 
-    std::cout << "\nFuehre 7 Schritte aus:\n";
-    for (int i = 0; i < 7; i++) {
+    std::cout << "\nFuehre 10 Schritte aus:\n";
+    for (int i = 0; i < 10; i++) {
         cpu.step();
     }
 
