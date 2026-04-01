@@ -1,0 +1,84 @@
+                    00001           ;TPicSim21
+                    00002           ;Programm zum Test des 16F84-Simulators.
+                    00003           ;Testprogramm für verschachtelte Unterprogramme
+                    00004           ;Beim 1. Durchlauf ist alles in Ordnung, da nur 8 CALLs
+                    00005           ;verschachtelt werden. Im 2. Durchgang werden 9 CALLs
+                    00006           ;durchgeführt, was zu einem Überlauf des Stacks führt. Die
+                    00007           ;Rücksprungadresse des 1. CALLs wird überschrieben was zur 
+                    00008           ;Folge hat, dass jetzt nicht mehr in die Hauptschleife
+                    00009           ;zurückgefunden wird
+                    00010           ;
+                    00011           ;(c) St. Lehmann  
+                    00012           ;13.04.2023 
+                    00013           
+                    00014           list c=132          ;Zeilenlänge im LST auf 132 Zeichen setzen
+                    00015             
+                    00016           ;Definition einiger Symbole
+                    00017           indirect equ 0
+                    00018           pcl      equ 02h
+                    00019           status   equ 03h
+                    00020           fsr      equ 04h
+                    00021           ra       equ 05h
+                    00022           rb       equ 06h
+                    00023           pclath   equ 0ah
+                    00024           intcon   equ 0bh
+                    00025           rp0      equ 5               ;Bankumschaltbit
+                    00026           zero     equ 2               ;Zeroflag
+                    00027           
+                    00028           erg1     equ 20h             ;Ergebnis 1
+                    00029           erg2     equ 21h             ;Ergebnis 2
+                    00030           
+                    00031           ;Definition des Prozessors
+                    00032           device 16F84
+                    00033           ;Festlegen des Codebeginns
+                    00034           org 0
+                    00035           ;die ersten 4 Befehle bilden die Hauptschleife
+                    00036  start    
+0000 0100           00037           clrw                ;Rückgabewerte kommen ins W-Register
+                    00038  loop       
+0001 2004           00039           call up1            ;1. CALL, 1. Eintrag auf dem Stack
+0002 3CC8           00040           sublw 200           ;ergibt 0D8H (0xd8)
+0003 2801           00041           goto loop           ;neuer Durchlauf
+                    00042  up1      
+0004 2008           00043           call up2            ;jeder weitere CALL füllt den Stack
+0005 3E08           00044           addlw 8
+0006 00A0           00045           movwf erg1          ;hier muss 24h (0x24) stehen
+0007 34F0           00046           retlw 240
+                    00047  up2        
+0008 200B           00048           call up3
+0009 3E07           00049           addlw 7
+000A 0008           00050           return
+                    00051  up3      
+000B 200E           00052           call up4
+000C 3E06           00053           addlw 6
+000D 0008           00054           return
+                    00055  up4      
+000E 2011           00056           call up5
+000F 3E05           00057           addlw 5
+0010 0008           00058           return
+                    00059  up5      
+0011 2014           00060           call up6
+0012 3E04           00061           addlw 4
+0013 0008           00062           return
+                    00063  up6      
+0014 2017           00064           call up7
+0015 3E03           00065           addlw 3
+0016 0008           00066           return
+                    00067  up7      
+0017 201A           00068           call up8
+0018 3E02           00069           addlw 2
+0019 0008           00070           return
+                    00071  up8      
+001A 3800           00072           iorlw 0
+001B 1D03           00073           btfss status,zero
+001C 201F           00074           call up9            ;wird erst im 2. Durchlauf aufgerufen
+001D 3E01           00075           addlw 1
+001E 0008           00076           return
+                    00077  up9      
+001F 3005           00078           movlw 5             ;die Rücksprungadresse von CALL up1 ist verloren
+0020 0008           00079           return         
+                    00080             
+                    00081  ende     
+0021 2821           00082           goto ende
+                    00083             
+                    00084           

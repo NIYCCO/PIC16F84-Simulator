@@ -10,6 +10,8 @@
 #include "backends/imgui_impl_glfw.h"
 #include "backends/imgui_impl_opengl3.h"
 
+#include "imfilebrowser.h"
+
 int main() {
     if (!glfwInit()) return -1;
 
@@ -50,6 +52,11 @@ int main() {
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 330");
 
+    ImGui::FileBrowser fileDialog;
+
+    fileDialog.SetTitle("Open LST File");
+    fileDialog.SetTypeFilters({ ".lst", ".LST" });
+
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
 
@@ -61,11 +68,23 @@ int main() {
 
         if (ImGui::BeginMainMenuBar()) {
             if (ImGui::BeginMenu("File")) {
+                if (ImGui::MenuItem("Open LST File")) fileDialog.Open();
+
                 if (ImGui::MenuItem("Exit")) glfwSetWindowShouldClose(window, true);
                 ImGui::EndMenu();
             }
             ImGui::EndMainMenuBar();
         }
+
+        fileDialog.Display();
+
+        if(fileDialog.HasSelected()) {
+            std::cout << "Selected filename: " << fileDialog.GetSelected().string() << std::endl;
+            fileDialog.ClearSelected();
+        }
+
+        bool show_demo_window = true;
+        ImGui::ShowDemoWindow(&show_demo_window);
 
         ImGui::Begin("Scene Hierarchy");
         ImGui::Text("Hier stehen deine Entities");

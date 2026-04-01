@@ -1,0 +1,264 @@
+                    00001           ;TPicSim300.src
+                    00002           ;Testprogramm für reine Konsolenausgabe
+                    00003           ;
+                    00004           ;Stand: 18.05.2023
+                    00005           ;
+                    00006           ;Falls ein Einzelkämpfer oder -kämpferin keine GUI schafft 
+                    00007           ;die Ausgabe auf der Konsole erfolgt, kann mit diesem Progr
+                    00008           ;dennoch die Funktionalität der Simulation erfolgen.
+                    00009           ;
+                    00010           ;Trotzdem sollte eine Möglichkeit vorhanden  sein, die es
+                    00011           ;möglich macht, die Stimulation der Pins zu realisieren, z.
+                    00012           ;durch Konsoleneingabe von 0-7 für Port B und SHIFT 0-7 für
+                    00013           ;Port A. Diese Eingabe wird mit System.in realisiert. Wann 
+                    00014           ;solche Eingabe erwartet wird, zeigt der Pseudo-Befehl INKE
+                    00015           ;LST-File an. Der Pseudobefehl PRINT verbessert die Orienti
+                    00016           ;in der Konsolenausgabe. In der Binärcodierung wird der NOP
+                    00017           ;erweitert. 
+                    00018           ;Normaler NOP = 00 0000 0000 0000  (0x0000) 
+                    00019           ;INKEY        = 00 0000 0010 0000  (0x0020)
+                    00020           ;PRINT        = 00 0000 0100 0000  (0x0040)
+                    00021           
+                    00022           ;Definition des Prozessors
+                    00023           device 16F84
+                    00024           
+                    00025           ;Variablendeklaration
+                    00026           indirect equ 00h             ;Indirekt-Register
+                    00027           status   equ 03h             ;Status-Register
+                    00028           fsr      equ 04h             ;FSR-Register
+                    00029           wert1    equ 0ch             ;Variable Nr.1
+                    00030           wert2    equ 0dh             ;Variable Nr.2
+                    00031           ergeb    equ 0eh             ;Variable Nr.3
+                    00032             
+                    00033           ;Festlegen des Codebeginns
+                    00034           org 0               ;Startadresse des Programms
+                    00035           
+0000 0000           00036           nop                 ;PRINT Programmstart
+                    00037  test1    
+0001 3011           00038           movlw 11h           ;in W steht nun 11h, Statusreg. unverän
+0002 3930           00039           andlw 30h           ;W = 10h, C=x, DC=x, Z=0
+0003 380D           00040           iorlw 0Dh           ;W = 1Dh, C=x, DC=x, Z=0
+0004 3C3D           00041           sublw 3Dh           ;W = 20h, C=1, DC=1, Z=0
+0005 3A20           00042           xorlw 20h           ;W = 00h, C=1, DC=1, Z=1
+0006 3E25           00043           addlw 25h           ;W = 25h, C=0, DC=0, Z=0
+                    00044           
+0007 0000           00045           nop                 ;PRINT Weiter mit ENTER
+0008 0000           00046           nop                 ;INKEY (eingegebener Wert verwerfen)
+                    00047  test2    
+0009 3011           00048           movlw 11h           ;in W steht nun 11h, Statusreg. unverän
+000A 200F           00049           call up1            ;beim Call wird Rücksprungadresse auf S
+000B 0000           00050           nop                 ;W = 36h, C=0, DC=0, Z=0
+000C 2011           00051           call up2            ;in W steht der Rückgabewert
+000D 0000           00052           nop                 ;W = 77h, DC=0, C=0, Z=0;
+000E 2812           00053           goto test2end
+                    00054           ;UP1 zählt zu W den Wert 25h hinzu und kehrt mit RETURN zur
+000F 3E25           00055  up1      addlw 25h           ;W = 36h, DC=0, C=0, Z=0
+0010 0008           00056           return
+                    00057           ;UP2 kehrt mit der Konstanten 77h zurück
+0011 3477           00058  up2      retlw 77h
+                    00059           
+                    00060  test2end 
+0012 0000           00061           nop                 ;PRINT Weiter mit ENTER
+0013 0000           00062           nop                 ;INKEY (eingegebener Wert verwerfen)
+                    00063  test3    
+0014 3011           00064           movlw 11h           ;in W steht nun 11h, DC=?, C=?, Z=?
+0015 008C           00065           movwf wert1         ;diesen Wert abspeichern, DC=?, C=?, Z=
+0016 3014           00066           movlw 14h           ;W = 14h, DC=?, C=?, Z=?
+0017 0000           00067           nop                 ;INKEY
+0018 070C           00068           addwf wert1,w       ;W = 25h, DC=0, C=0, Z=0
+0019 078C           00069           addwf wert1         ;W = 25h, wert1 = 36h, DC=0, C=0, Z=0
+001A 0000           00070           nop                 ;INKEY
+001B 050C           00071           andwf wert1,w       ;W = 24h, wert1 = 36h, DC=0, C=0, Z=0
+001C 0000           00072           nop                 ;INKEY
+001D 008D           00073           movwf wert2         ;W=24h, wert1=36, wert2=24h
+001E 018C           00074           clrf wert1          ;W=24h, wert1=0, wert2=24h, DC=0, C=0, 
+001F 0000           00075           nop                 ;INKEY
+0020 090D           00076           comf wert2,w        ;W=DBh, wert1=0, wert2=24h, DC=0, C=0, 
+0021 0000           00077           nop                 ;INKEY
+0022 030C           00078           decf wert1,w        ;W=FFh, wert1=0, wert2=24h, DC=0, C=0, 
+0023 0A8D           00079           incf wert2          ;W=FFh, wert1=0, wert2=25h, DC=0, C=0, 
+0024 0000           00080           nop                 ;INKEY
+0025 088C           00081           movf wert1          ;W=FFh, wert1=0, wert2=25h, DC=0, C=0, 
+0026 0000           00082           nop                 ;INKEY
+0027 048C           00083           iorwf wert1         ;W=FFh, wert1=FFh, wert2=25h, DC=0, C=0
+0028 0000           00084           nop                 ;INKEY
+0029 020D           00085           subwf wert2,w       ;W=26h, wert1=FFh, wert2=25h, DC=0, C=0
+002A 0000           00086           nop                 ;INKEY
+002B 0E8D           00087           swapf wert2         ;W=26h, wert1=FFh, wert2=52h, DC=0, C=0
+002C 0000           00088           nop                 ;INKEY
+002D 068C           00089           xorwf wert1         ;W=26h, wert1=D9h, wert2=52h, DC=0, C=0
+002E 0000           00090           nop                 ;INKEY
+002F 0100           00091           clrw                ;W=00h, wert1=D9h, wert2=52h, DC=0, C=0
+0030 0000           00092           nop                 ;INKEY
+0031 020C           00093           subwf wert1,w       ;W=D9h, wert1=D9h, wert2=52h, DC=1, C=1
+0032 0000           00094           nop                 ;INKEY
+0033 020D           00095           subwf wert2,w       ;W=79h, wert1=D9h, wert2=52h, DC=0, C=0
+0034 0000           00096           nop                 ;INKEY
+0035 028D           00097           subwf wert2         ;W=79h, wert1=D9h, wert2=D9h, DC=0, C=0
+0036 0000           00098           nop                 ;INKEY
+0037 028D           00099           subwf wert2         ;W=79h, wert1=D9h, wert2=60h, DC=1, C=1
+                    00100  test3end 
+0038 0000           00101           nop                 ;PRINT Weiter mit ENTER
+0039 0000           00102           nop                 ;INKEY (eingegebener Wert verwerfen)
+                    00103           
+                    00104  test4    
+003A 3011           00105           movlw 11h           ;in W steht nun 11h, DC=?, C=?, Z=?
+003B 008C           00106           movwf wert1         ;diesen Wert abspeichern, DC=?, C=?, Z=
+003C 3E11           00107           addlw 11h           ;löscht u.a. das Carry-Flag,  DC=0, C=0
+003D 0D8C           00108           rlf wert1           ;W=22h, wert1=22h, wert2=?? , DC=0, C=0
+003E 0D8C           00109           rlf wert1           ;W=22h, wert1=44h, wert2=?? , DC=0, C=0
+003F 0D8C           00110           rlf wert1           ;W=22h, wert1=88h, wert2=?? , DC=0, C=0
+0040 0D0C           00111           rlf wert1,w         ;W=10h, wert1=88h, wert2=?? , DC=0, C=1
+0041 0D8C           00112           rlf wert1           ;W=10h, wert1=11h, wert2=?? , DC=0, C=1
+0042 0D0C           00113           rlf wert1,w         ;W=23h, wert1=11h, wert2=?? , DC=0, C=0
+0043 0C8C           00114           rrf wert1           ;W=23h, wert1=08h, wert2=?? , DC=0, C=1
+0044 008D           00115           movwf wert2         ;W=23h, wert1=08h, wert2=23h, DC=0, C=1
+0045 0C8D           00116           rrf wert2           ;W=23h, wert1=08h, wert2=91h, DC=0, C=1
+0046 0C0D           00117           rrf wert2,w         ;W=C8h, wert1=08h, wert2=91h, DC=0, C=1
+0047 0000           00118           nop                 ;INKEY
+                    00119             
+0048 3009           00120           movlw 9             ;W=09h, wert1=08h, wert2=91h, DC=0, C=1
+0049 008C           00121           movwf wert1         ;W=09h, wert1=09h, wert2=91h, DC=0, C=1
+004A 0100           00122           clrw                ;W=00h, wert1=09h, wert2=91h, DC=0, C=1
+                    00123  test4_1  
+004B 3E01           00124           addlw 1             ;W=01h, DC=0, C=0, Z=0
+                    00125           ;W=02h, DC=0, C=0, Z=0
+                    00126           ;W=03h, DC=0, C=0, Z=0
+                    00127           ;W=04h, DC=0, C=0, Z=0
+                    00128           ;W=05h, DC=0, C=0, Z=0
+                    00129           ;W=06h, DC=0, C=0, Z=0
+                    00130           ;W=07h, DC=0, C=0, Z=0
+                    00131           ;W=08h, DC=0, C=0, Z=0
+                    00132           ;W=09h, DC=0, C=0, Z=0
+004C 078D           00133           addwf wert2         ;wert2=92h, DC=0, C=0, Z=0
+                    00134           ;wert2=94h, DC=0, C=0, Z=0
+                    00135           ;wert2=97h, DC=0, C=0, Z=0
+                    00136           ;wert2=9Bh, DC=0, C=0, Z=0
+                    00137           ;wert2=A0h, DC=1, C=0, Z=0
+                    00138           ;wert2=A6h, DC=0, C=0, Z=0
+                    00139           ;wert2=ADh, DC=0, C=0, Z=0
+                    00140           ;wert2=B5h, DC=1, C=0, Z=0
+                    00141           ;wert2=BEh, DC=0, C=0, Z=0
+004D 0B8C           00142           decfsz wert1        ;wert1=08h, wert1=07h, ... DC,C und Z b
+004E 284B           00143           goto test4_1
+                    00144           
+004F 0000           00145           nop                 ;INKEY
+                    00146             
+0050 30F0           00147           movlw 0f0h          ;Wert wird bis 00h (über FFh) hochgezäh
+0051 008C           00148           movwf wert1
+0052 018D           00149           clrf wert2
+0053 0100           00150           clrw
+                    00151  test4_2  
+0054 070C           00152           addwf wert1,w       ;W=F0h, wert1=F0h, wert2=00h, DC=0, C=0
+                    00153           ;W=E1h, wert1=F1h, wert2=01h, DC=0, C=1, Z=0
+                    00154           ;W=D3h, wert1=F2h, wert2=02h, DC=0, C=1, Z=0
+                    00155           ;W=C6h, wert1=F3h, wert2=03h, DC=0, C=1, Z=0
+                    00156           ;W=BAh, wert1=F4h, wert2=04h, DC=0, C=1, Z=0
+                    00157           ;W=AFh, wert1=F5h, wert2=05h, DC=0, C=1, Z=0
+                    00158           ;W=A5h, wert1=F6h, wert2=06h, DC=1, C=1, Z=0
+                    00159           ;W=9Ch, wert1=F7h, wert2=07h, DC=0, C=1, Z=0
+                    00160           ;W=94h, wert1=F8h, wert2=08h, DC=1, C=1, Z=0
+                    00161           ;W=8Dh, wert1=F9h, wert2=09h, DC=0, C=1, Z=0
+                    00162           ;W=87h, wert1=FAh, wert2=0Ah, DC=1, C=1, Z=0
+                    00163           ;W=82h, wert1=FBh, wert2=0Bh, DC=1, C=1, Z=0
+                    00164           ;W=7Eh, wert1=FCh, wert2=0Ch, DC=0, C=1, Z=0
+                    00165           ;W=7Bh, wert1=FDh, wert2=0Dh, DC=1, C=1, Z=0
+                    00166           ;W=79h, wert1=FEh, wert2=0Eh, DC=1, C=1, Z=0
+                    00167           ;W=78h, wert1=FFh, wert2=0Fh, DC=1, C=1, Z=0
+                    00168             
+0055 0A8D           00169           incf wert2          ;W=F0h, wert1=F0h, wert2=01h, DC=0, C=0
+                    00170           ;W=E1h, wert1=F1h, wert2=02h, DC=0, C=1, Z=0
+                    00171             
+                    00172           ;W=D3h, wert1=F2h, wert2=03h, DC=0, C=1, Z=0
+                    00173           ;W=C6h, wert1=F3h, wert2=04h, DC=0, C=1, Z=0
+                    00174           ;W=BAh, wert1=F4h, wert2=05h, DC=0, C=1, Z=0
+                    00175           ;W=AFh, wert1=F5h, wert2=06h, DC=0, C=1, Z=0
+                    00176           ;W=A5h, wert1=F6h, wert2=07h, DC=1, C=1, Z=0
+                    00177           ;W=9Ch, wert1=F7h, wert2=08h, DC=0, C=1, Z=0
+                    00178           ;W=94h, wert1=F8h, wert2=09h, DC=1, C=1, Z=0
+                    00179           ;W=8Dh, wert1=F9h, wert2=0Ah, DC=0, C=1, Z=0
+                    00180           ;W=87h, wert1=FAh, wert2=0Bh, DC=1, C=1, Z=0
+                    00181           ;W=82h, wert1=FBh, wert2=0Ch, DC=1, C=1, Z=0
+                    00182           ;W=7Eh, wert1=FCh, wert2=0Dh, DC=0, C=1, Z=0
+                    00183           ;W=7Bh, wert1=FDh, wert2=0Eh, DC=1, C=1, Z=0
+                    00184           ;W=79h, wert1=FEh, wert2=0Fh, DC=1, C=1, Z=0
+                    00185           ;W=78h, wert1=FFh, wert2=10h, DC=1, C=1, Z=0
+0056 0F8C           00186           incfsz wert1        ;wert1=F1h, F2h, F3h .. FFh, 00h, wert2
+0057 2854           00187           goto test4_2     
+                    00188  test4end 
+                    00189           
+0058 0000           00190           nop                 ;PRINT Weiter mit ENTER
+0059 0000           00191           nop                 ;INKEY (eingegebener Wert verwerfen)
+                    00192           
+                    00193  test5    
+005A 3011           00194           movlw 11h           ;in W steht nun 11h, DC=?, C=?, Z=?
+005B 008C           00195           movwf wert1         ;diesen Wert abspeichern, DC=?, C=?, Z=
+005C 018D           00196           clrf wert2          ;W=11h, wert1=11h, wert2=00h, DC=?, C=?
+005D 178C           00197           bsf wert1,7         ;W=11h, wert1=91h, wert2=00h, DC=?, C=?
+005E 158C           00198           bsf wert1,3         ;W=11h, wert1=99h, wert2=00h, DC=?, C=?
+005F 120C           00199           bcf wert1,4         ;W=11h, wert1=89h, wert2=00h, DC=?, C=?
+0060 100C           00200           bcf wert1,0         ;W=11h, wert1=88h, wert2=00h, DC=?, C=?
+                    00201             
+0061 180C           00202           btfsc wert1,0
+0062 0A8D           00203           incf wert2
+0063 0A8D           00204           incf wert2
+0064 198C           00205           btfsc wert1,3
+0065 0A8D           00206           incf wert2
+0066 0A8D           00207           incf wert2
+0067 1D0C           00208           btfss wert1,2
+0068 0A8D           00209           incf wert2
+0069 0A8D           00210           incf wert2
+006A 1F8C           00211           btfss wert1,7
+006B 0A8D           00212           incf wert2
+006C 038D           00213           decf wert2          ;in wert2 muss 04h stehen
+                    00214  test5end 
+                    00215           
+006D 0000           00216           nop                 ;PRINT Weiter mit ENTER
+006E 0000           00217           nop                 ;INKEY (eingegebener Wert verwerfen)
+                    00218           
+                    00219  test6    
+006F 3020           00220           movlw 20h           ;in W steht nun 20h, DC=?, C=?, Z=?
+0070 008C           00221           movwf wert1         ;diesen Wert abspeichern, DC=?, C=?, Z=
+0071 3010           00222           movlw 10h           ;W = 10h, DC=?, C=?, Z=?
+0072 0084           00223           movwf fsr           ;W=10h, FSR=10h, wert1=20h, wert2=?? , 
+0073 008D           00224           movwf wert2         ;W=10h, FSR=10h, wert1=20h, wert2=10h, 
+0074 080C           00225           movf wert1,w        ;W=20h
+                    00226           
+0075 0000           00227           nop                 ;INKEY
+                    00228           
+                    00229           ;der Speicherbereich von 10h bis 1Fh wird mit Zahlen 20h, 2
+                    00230  test6_1    
+0076 0080           00231           movwf indirect      ;W=20h, FSR=10h, F10=20h
+0077 3E01           00232           addlw 1             ;W=20h, 21h, 22h, etc
+0078 0A84           00233           incf fsr            ;FSR=11h, 12h, etc
+0079 0B8D           00234           decfsz wert2
+007A 2876           00235           goto test6_1
+                    00236             
+007B 301F           00237           movlw 1fh           ;FSR-Zeiger wieder auf Anfang stellen
+007C 0084           00238           movwf fsr
+007D 30F0           00239           movlw 0f0h
+007E 008D           00240           movwf wert2
+007F 0100           00241           clrw
+                    00242  test6_2  
+0080 0700           00243           addwf indirect,w
+0081 0384           00244           decf fsr
+0082 0F8D           00245           incfsz wert2
+0083 2880           00246           goto test6_2
+                    00247           ;im W-Register muss 78h stehen
+0084 0000           00248           nop                 ;INKEY
+                    00249           
+0085 008D           00250           movwf wert2
+0086 0A84           00251           incf fsr
+0087 0C80           00252           rrf indirect        ;F10=10h
+0088 0A80           00253           incf indirect       ;F10=11h
+0089 0C80           00254           rrf indirect        ;F10=08h, C=1
+008A 1780           00255           bsf indirect,7      ;F10=88h
+008B 1003           00256           bcf status,0        ;C=0                             
+008C 0D80           00257           rlf indirect        ;F10=10h, C=1
+008D 0A84           00258           incf fsr            ;fsr=11h
+008E 0D80           00259           rlf indirect        ;F11=43h, C=0
+008F 0E80           00260           swapf indirect      ;F11=34h
+0090 0680           00261           xorwf indirect      ;F11=4Ch
+0091 1A80           00262           btfsc indirect,5
+0092 2800           00263           goto loop
+Fehler in Zeile 263 : Symbol/Label nicht definiert o. Arg. fehlt!
