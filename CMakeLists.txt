@@ -22,6 +22,7 @@ add_library(imgui
 target_include_directories(imgui PUBLIC
     external/imgui
     external/imgui/backends
+    external
 )
 
 target_link_libraries(imgui PUBLIC glfw OpenGL::GL)
@@ -35,4 +36,12 @@ add_executable(
     ${SOURCE_FILES}
 )
 
+target_include_directories(${PROJECT_NAME} PRIVATE external)
+
 target_link_libraries(pic16F84_sim PRIVATE imgui)
+
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    "${CMAKE_CURRENT_SOURCE_DIR}/assets"
+    "$<TARGET_FILE_DIR:${PROJECT_NAME}>/assets"
+)
