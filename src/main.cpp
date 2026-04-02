@@ -57,6 +57,8 @@ int main() {
     fileDialog.SetTitle("Open LST File");
     fileDialog.SetTypeFilters({ ".lst", ".LST" });
 
+    bool openAboutPopup = false;
+
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
 
@@ -68,11 +70,21 @@ int main() {
 
         if (ImGui::BeginMainMenuBar()) {
             if (ImGui::BeginMenu("File")) {
-                if (ImGui::MenuItem("Open LST File")) fileDialog.Open();
-
-                if (ImGui::MenuItem("Exit")) glfwSetWindowShouldClose(window, true);
+                if (ImGui::MenuItem("Open LST File", "Ctrl+O")) fileDialog.Open();
+                ImGui::Separator();
+                if (ImGui::MenuItem("Quit", "Alt+F4")) glfwSetWindowShouldClose(window, true);
                 ImGui::EndMenu();
             }
+
+            if (ImGui::BeginMenu("Settings")) {
+                ImGui::EndMenu();
+            }
+
+            if (ImGui::BeginMenu("Info")) {
+                openAboutPopup = true;
+                ImGui::EndMenu();
+            }
+
             ImGui::EndMainMenuBar();
         }
 
@@ -107,6 +119,21 @@ int main() {
         ImGui::Begin("Viewport");
         ImGui::Text("Hier könnte dein Simulator-Output hin");
         ImGui::End();
+
+        if (openAboutPopup) {
+            ImGui::OpenPopup("About PIC16F84 Simulator");
+            openAboutPopup = false; 
+        }
+
+        if (ImGui::BeginPopupModal("About PIC16F84 Simulator", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+            ImGui::Text("PIC16F84 Simulator - Version 1.0");
+            ImGui::Separator();
+            ImGui::Text("Created by:");
+            ImGui::TextLinkOpenURL("Nico Rigsinger", "https://github.com/NIYCCO");
+            ImGui::TextLinkOpenURL("Louis Wunsch", "https://github.com/DerPowerbauer");
+            if (ImGui::Button("OK")) { ImGui::CloseCurrentPopup(); }
+            ImGui::EndPopup();
+        }
 
         ImGui::Render();
         int display_w, display_h;
