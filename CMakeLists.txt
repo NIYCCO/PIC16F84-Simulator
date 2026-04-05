@@ -28,7 +28,11 @@ target_include_directories(imgui PUBLIC
 target_link_libraries(imgui PUBLIC glfw OpenGL::GL)
 
 set(SOURCE_FILES
+    src/ui/editor.h
+
     src/main.cpp
+    src/ui/editor.cpp
+    external/TextEditor.cpp
 )
 
 add_executable(

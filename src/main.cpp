@@ -11,6 +11,7 @@
 #include "backends/imgui_impl_opengl3.h"
 
 #include "imfilebrowser.h"
+#include "ui/editor.h"
 
 int main() {
     if (!glfwInit()) return -1;
@@ -57,7 +58,7 @@ int main() {
     fileDialog.SetTitle("Open LST File");
     fileDialog.SetTypeFilters({ ".lst", ".LST" });
 
-    bool openAboutPopup = false;
+    Editor editor;
 
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
@@ -81,7 +82,7 @@ int main() {
             }
 
             if (ImGui::BeginMenu("Info")) {
-                openAboutPopup = true;
+                ImGui::OpenPopup("About PIC16F84 Simulator");
                 ImGui::EndMenu();
             }
 
@@ -92,6 +93,7 @@ int main() {
 
         if(fileDialog.HasSelected()) {
             std::cout << "Selected filename: " << fileDialog.GetSelected().string() << std::endl;
+            editor.openFile(fileDialog.GetSelected().string());
             fileDialog.ClearSelected();
         }
 
@@ -120,10 +122,7 @@ int main() {
         ImGui::Text("Hier könnte dein Simulator-Output hin");
         ImGui::End();
 
-        if (openAboutPopup) {
-            ImGui::OpenPopup("About PIC16F84 Simulator");
-            openAboutPopup = false; 
-        }
+        editor.render();
 
         if (ImGui::BeginPopupModal("About PIC16F84 Simulator", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
             ImGui::Text("PIC16F84 Simulator - Version 1.0");
