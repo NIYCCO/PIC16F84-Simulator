@@ -36,7 +36,7 @@ Editor::Editor() {
             drawList->AddCircleFilled(center, radius, IM_COL32(220, 50, 50, 255));
         } else if (ImGui::IsItemHovered()) {
             drawList->AddCircle(center, radius, IM_COL32(120, 120, 120, 180), 0, 1.5f);
-            ImGui::SetTooltip("Toggle breakpoint at line %d", line);
+            ImGui::SetTooltip("Toggle breakpoint at line %d", line+1);
         }
 
     });
@@ -81,4 +81,9 @@ void Editor::toggleBreakpoint(int line) {
     } else {
         breakpoints.insert(line);
     }
+}
+
+void Editor::displayStepMarker(int line) {
+    editor.ClearMarkers();
+    editor.AddMarker(line-1, 0, IM_COL32(128, 0, 32, 128), "", "");
 }

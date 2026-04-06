@@ -12,6 +12,10 @@ class Editor {
         void openFile(const std::string &path);
         void render();
 
+        std::unordered_set<int> getBreakpoints() const { return breakpoints; }
+        
+        void displayStepMarker(int line);
+
     private:
         TextEditor editor;
         std::unordered_set<int> breakpoints;
@@ -20,5 +24,5 @@ class Editor {
         void removeBreakpoint(int line);
         void toggleBreakpoint(int line);
         void clearBreakpoints() { breakpoints.clear(); }
-        std::unordered_set<int> getBreakpoints() const { return breakpoints; }
+
 };
