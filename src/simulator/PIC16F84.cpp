@@ -12,3 +12,7 @@ void PIC16F84::loadProgram(const std::string& path) {
     programMemory.loadFromFile(path);
     programMemory.printMemory();
 }
+
+void PIC16F84::run() {
+    
+}

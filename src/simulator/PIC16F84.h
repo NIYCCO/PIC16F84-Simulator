@@ -9,6 +9,8 @@ class PIC16F84 {
         ~PIC16F84();
 
         void loadProgram(const std::string& path);
+        
+        void run();
 
     private:
         CPU cpu;

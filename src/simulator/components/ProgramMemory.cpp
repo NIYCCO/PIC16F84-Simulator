@@ -3,6 +3,8 @@
 #include <fstream>
 #include <iomanip>
 
+#include "instructions.h"
+
 ProgramMemory::ProgramMemory() {
     for (int i = 0; i < 1024; i++) {
         memory[i] = 0;

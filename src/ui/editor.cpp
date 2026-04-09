@@ -12,6 +12,7 @@ static const char* defaultText =
 Editor::Editor() {
     editor.SetText(defaultText);
     editor.SetReadOnlyEnabled(true);
+    editor.SetShowScrollbarMiniMapEnabled(false);
 
     editor.SetLineDecorator(18.0f, [this](TextEditor::Decorator &decorator) {
         const int line = decorator.line;

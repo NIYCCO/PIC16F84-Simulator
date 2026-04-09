@@ -2,6 +2,8 @@
 #include <iostream>
 #include <iomanip>
 
+#include "instructions.h"
+
 CPU::CPU(const ProgramMemory& pm) : programMemory(pm) {
     reset();
 }
@@ -95,31 +97,31 @@ void CPU::executeGoto(int instruction) {
 }
 
 void CPU::decodeAndExecute(int instruction) {
-    if ((instruction & 0x3F00) == 0x3000) {
+    if ((instruction & 0x3F00) == Instruction::MOVLW) {
         executeMovlw(instruction);
         pc++;
     }
-    else if ((instruction & 0x3F00) == 0x3900) {
+    else if ((instruction & 0x3F00) == Instruction::ANDLW) {
         executeAndlw(instruction);
         pc++;
     }
-    else if ((instruction & 0x3F00) == 0x3800) {
+    else if ((instruction & 0x3F00) == Instruction::IORLW) {
         executeIorlw(instruction);
         pc++;
     }
-    else if ((instruction & 0x3F00) == 0x3A00) {
+    else if ((instruction & 0x3F00) == Instruction::XORLW) {
         executeXorlw(instruction);
         pc++;
     }
-    else if ((instruction & 0x3F00) == 0x3C00) {
+    else if ((instruction & 0x3F00) == Instruction::SUBLW) {
         executeSublw(instruction);
         pc++;
     }
-    else if ((instruction & 0x3F00) == 0x3E00) {
+    else if ((instruction & 0x3F00) == Instruction::ADDLW) {
         executeAddlw(instruction);
         pc++;
     }
-    else if ((instruction & 0x3800) == 0x2800) {
+    else if ((instruction & 0x3800) == Instruction::GOTO) {
         executeGoto(instruction);
     }
     else {
