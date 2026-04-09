@@ -183,6 +183,10 @@ void SimulationInterface::renderMenuBar() {
 void SimulationInterface::renderPanels() {
     ImGui::Begin("Properties", nullptr, ImGuiWindowFlags_NoMove);
     ImGui::Text("Details zum ausgewählten Objekt");
+    if (ImGui::Button("TEST")) {
+        std::cout << "Test clicked!" << std::endl;
+        // LOUIS TEST
+    }
     ImGui::End();
 
     ImGui::Begin("Stats", nullptr, ImGuiWindowFlags_NoMove);
