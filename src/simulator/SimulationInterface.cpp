@@ -142,7 +142,7 @@ void SimulationInterface::setupDocking() {
 		ImGui::DockBuilderAddNode(dockspace_id, 0);
 
 		ImGuiID dock_main_id = dockspace_id;
-		ImGuiID dock_id_left = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Left, 0.20f, NULL, &dock_main_id);
+		ImGuiID dock_id_left = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Left, 0.175f, NULL, &dock_main_id);
 		ImGuiID dock_id_right = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Right, 0.20f, NULL, &dock_main_id);
 		ImGuiID dock_id_bottom = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Down, 0.50f, NULL, &dock_main_id);
 
@@ -201,7 +201,13 @@ void SimulationInterface::renderPanels() {
 
     static uint8_t data[256];
     size_t data_size = sizeof(data);
-    ImGui::Begin("Memory Editor", nullptr, ImGuiWindowFlags_NoMove);
+    ImGuiWindowFlags mem_edit_flags = ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse;
+    ImGui::Begin("Memory Editor", nullptr, mem_edit_flags);
+    mem_edit.Cols = 8;
+    mem_edit.OptShowAscii = false;
+    mem_edit.OptAddrDigitsCount = 2;
+    mem_edit.OptUpperCaseHex = true;
+    mem_edit.OptShowOptions = false;
     mem_edit.DrawContents(data, data_size);
     ImGui::End();
 }
