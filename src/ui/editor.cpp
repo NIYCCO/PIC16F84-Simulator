@@ -62,7 +62,7 @@ void Editor::openFile(const std::string &path) {
 }
 
 void Editor::render() {
-    ImGui::Begin("Text Editor");
+    ImGui::Begin("Text Editor", nullptr, ImGuiWindowFlags_NoMove);
     editor.Render("TextEditor");
     ImGui::End();
 }
