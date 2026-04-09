@@ -63,7 +63,25 @@ void Editor::openFile(const std::string &path) {
 
 void Editor::render() {
     ImGui::Begin("Text Editor", nullptr, ImGuiWindowFlags_NoMove);
+    if (ImGui::Button("Step in", ImVec2(80, 0))) {
+        std::cout << "Step in button clicked!" << std::endl;
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Step out", ImVec2(80, 0))) {
+        std::cout << "Step out button clicked!" << std::endl;
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Step over", ImVec2(80, 0))) {
+        std::cout << "Step over button clicked!" << std::endl;
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Go", ImVec2(80, 0))) {
+        std::cout << "Go button clicked!" << std::endl;
+    }
+    ImGui::Spacing();
+    ImGui::BeginChild("TextEditor", ImVec2(0.0f, 0.0f), ImGuiChildFlags_None);
     editor.Render("TextEditor");
+    ImGui::EndChild();
     ImGui::End();
 }
 
