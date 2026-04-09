@@ -146,10 +146,9 @@ void SimulationInterface::setupDocking() {
 		ImGuiID dock_id_right = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Right, 0.20f, NULL, &dock_main_id);
 		ImGuiID dock_id_bottom = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Down, 0.50f, NULL, &dock_main_id);
 
-		ImGui::DockBuilderDockWindow("Scene Hierarchy", dock_id_left);
+        ImGui::DockBuilderDockWindow("Memory Editor", dock_id_left);
 		ImGui::DockBuilderDockWindow("Properties", dock_main_id);
 		ImGui::DockBuilderDockWindow("Stats", dock_id_right);
-		ImGui::DockBuilderDockWindow("Content Browser", dock_id_bottom);
 		ImGui::DockBuilderDockWindow("Viewport", dock_main_id);
         ImGui::DockBuilderDockWindow("Text Editor", dock_id_bottom);
 		ImGui::DockBuilderFinish(dockspace_id);
@@ -180,10 +179,6 @@ void SimulationInterface::renderMenuBar() {
 }
 
 void SimulationInterface::renderPanels() {
-    ImGui::Begin("Scene Hierarchy", nullptr, ImGuiWindowFlags_NoMove);
-    ImGui::Text("Hier stehen deine Entities");
-    ImGui::End();
-
     ImGui::Begin("Properties", nullptr, ImGuiWindowFlags_NoMove);
     ImGui::Text("Details zum ausgewählten Objekt");
     ImGui::End();
@@ -192,15 +187,17 @@ void SimulationInterface::renderPanels() {
     ImGui::Text("Renderer Stats:\nDraw Calls: 0");
     ImGui::End();
 
-    ImGui::Begin("Content Browser", nullptr, ImGuiWindowFlags_NoMove);
-    ImGui::Text("folder/\nmain.asm");
-    ImGui::End();
-
     ImGui::Begin("Viewport", nullptr, ImGuiWindowFlags_NoMove);
     ImGui::Text("Hier könnte dein Simulator-Output hin");
     ImGui::End();
 
     editor.render();
+
+    static uint8_t data[256];
+    size_t data_size = sizeof(data);
+    ImGui::Begin("Memory Editor", nullptr, ImGuiWindowFlags_NoMove);
+    mem_edit.DrawContents(data, data_size);
+    ImGui::End();
 }
 
 void SimulationInterface::handleFileDialog() {

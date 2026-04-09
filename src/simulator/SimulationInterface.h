@@ -4,6 +4,7 @@
 
 #include "imgui.h"
 
+#include "imgui_memory_editor.h"
 //#include "imfilebrowser.h"
 #include "../ui/editor.h"
 
@@ -21,6 +22,7 @@ class SimulationInterface {
         GLFWwindow* window;
         ImGui::FileBrowser* fileDialog;
         Editor editor;
+        MemoryEditor mem_edit;
 
         bool isFirstLayout;
         bool showAboutPopup;
