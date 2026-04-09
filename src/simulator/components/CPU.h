@@ -1,5 +1,4 @@
-#ifndef CPU_H
-#define CPU_H
+#pragma once
 
 #include "ProgramMemory.h"
 
@@ -39,5 +38,3 @@ public:
     void step();
     void printState() const;
 };
-
-#endif

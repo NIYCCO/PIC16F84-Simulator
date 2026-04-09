@@ -29,10 +29,16 @@ target_link_libraries(imgui PUBLIC glfw OpenGL::GL)
 
 set(SOURCE_FILES
     src/simulator/SimulationInterface.h
+    src/simulator/PIC16F84.h
+    src/simulator/components/CPU.h
+    src/simulator/components/ProgramMemory.h
     src/ui/editor.h
 
     src/main.cpp
     src/simulator/SimulationInterface.cpp
+    src/simulator/PIC16F84.cpp
+    src/simulator/components/CPU.cpp
+    src/simulator/components/ProgramMemory.cpp
     src/ui/editor.cpp
     external/TextEditor.cpp
 )

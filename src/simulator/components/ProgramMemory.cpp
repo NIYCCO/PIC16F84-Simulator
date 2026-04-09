@@ -11,7 +11,8 @@ ProgramMemory::ProgramMemory() {
 }
 
 void ProgramMemory::loadFromFile(const std::string& filename) {
-    std::ifstream file(filename);
+    std::ifstream file(filename.c_str());
+    printf("Lade Programm aus Datei: %s\n", filename.c_str());
 
     if (!file.is_open()) {
         std::cout << "Fehler beim Oeffnen der Datei!\n";

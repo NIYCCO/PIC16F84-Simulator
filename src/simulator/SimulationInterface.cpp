@@ -162,7 +162,9 @@ void SimulationInterface::setupDocking() {
 void SimulationInterface::renderMenuBar() {
     if (ImGui::BeginMainMenuBar()) {
         if (ImGui::BeginMenu("File")) {
-            if (ImGui::MenuItem("Open LST File", "Ctrl+O")) fileDialog->Open();
+            if (ImGui::MenuItem("Open LST File", "Ctrl+O")) {
+                fileDialog->Open();
+            }
             ImGui::Separator();
             if (ImGui::MenuItem("Quit", "Alt+F4")) glfwSetWindowShouldClose(window, true);
             ImGui::EndMenu();
@@ -206,6 +208,7 @@ void SimulationInterface::handleFileDialog() {
     if(fileDialog->HasSelected()) {
         std::cout << "Selected filename: " << fileDialog->GetSelected().string() << std::endl;
         editor.openFile(fileDialog->GetSelected().string());
+        pic.loadProgram(fileDialog->GetSelected().string());
         fileDialog->ClearSelected();
     }
 }

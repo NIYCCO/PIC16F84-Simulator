@@ -1,5 +1,4 @@
-#ifndef PROGRAMMEMORY_H
-#define PROGRAMMEMORY_H
+#pragma once
 
 #include <string>
 
@@ -17,5 +16,3 @@ public:
     int getInstruction(int address) const;
     bool isUsed(int address) const;
 };
-
-#endif

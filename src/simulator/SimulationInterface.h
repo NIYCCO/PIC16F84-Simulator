@@ -8,6 +8,8 @@
 //#include "imfilebrowser.h"
 #include "../ui/editor.h"
 
+#include "PIC16F84.h"
+
 namespace ImGui {
     class FileBrowser;
 }
@@ -23,6 +25,8 @@ class SimulationInterface {
         ImGui::FileBrowser* fileDialog;
         Editor editor;
         MemoryEditor mem_edit;
+
+        PIC16F84 pic;
 
         bool isFirstLayout;
         bool showAboutPopup;
