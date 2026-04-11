@@ -190,7 +190,18 @@ void SimulationInterface::renderPanels() {
     ImGui::Text("Details zum ausgewählten Objekt");
     if (ImGui::Button("TEST")) {
         std::cout << "Test clicked!" << std::endl;
-        // LOUIS TEST
+        std::cout << "\n=== TEST ===" << std::endl;
+        std::cout << "PC vorher: 0x" << std::hex << std::uppercase << pic.getPC() << std::endl;
+        std::cout << "IR vorher: 0x" << std::hex << std::uppercase << pic.getInstructionRegister() << std::endl;
+        std::cout << "W vorher: 0x" << std::hex << std::uppercase << pic.getWRegister() << std::endl;
+        std::cout << "STATUS vorher: 0x" << std::hex << std::uppercase << pic.getStatusRegister() << std::endl;
+
+        pic.step();
+
+        std::cout << "PC nachher: 0x" << std::hex << std::uppercase << pic.getPC() << std::endl;
+        std::cout << "IR nachher: 0x" << std::hex << std::uppercase << pic.getInstructionRegister() << std::endl;
+        std::cout << "W nachher: 0x" << std::hex << std::uppercase << pic.getWRegister() << std::endl;
+        std::cout << "STATUS nachher: 0x" << std::hex << std::uppercase << pic.getStatusRegister() << std::endl;
     }
     ImGui::End();
 
@@ -281,6 +292,16 @@ void SimulationInterface::renderPanels() {
 
     editor.render();
 
+    if (editor.handleStepInRequest()) {
+        pic.step();
+        int line = pic.getLineForAddress(pic.getPC());
+        editor.displayStepMarker(line);
+    }
+
+    if (editor.handleGoRequest()) {
+        isRunning = !isRunning;
+    }
+
     static uint8_t data[256];
     size_t data_size = sizeof(data);
     ImGuiWindowFlags mem_edit_flags = ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse;
@@ -292,6 +313,20 @@ void SimulationInterface::renderPanels() {
     mem_edit.OptShowOptions = false;
     mem_edit.DrawContents(data, data_size);
     ImGui::End();
+
+    if (isRunning) {
+    auto breakpoints = editor.getBreakpoints();
+
+    int currentLine = pic.getLineForAddress(pic.getPC());
+
+    if (breakpoints.find(currentLine) != breakpoints.end()) {
+        isRunning = false;
+    } else {
+        pic.step();
+        int line = pic.getLineForAddress(pic.getPC());
+        editor.displayStepMarker(line);
+    }
+}
 }
 
 void SimulationInterface::handleFileDialog() {
@@ -301,6 +336,8 @@ void SimulationInterface::handleFileDialog() {
         std::cout << "Selected filename: " << fileDialog->GetSelected().string() << std::endl;
         editor.openFile(fileDialog->GetSelected().string());
         pic.loadProgram(fileDialog->GetSelected().string());
+        int line = pic.getLineForAddress(pic.getPC());
+        editor.displayStepMarker(line);
         fileDialog->ClearSelected();
     }
 }
@@ -334,3 +371,4 @@ void SimulationInterface::shutdown() {
     }
     glfwTerminate();
 }
+

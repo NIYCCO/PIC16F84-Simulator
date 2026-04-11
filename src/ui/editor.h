@@ -5,6 +5,7 @@
 
 #include "TextEditor.h"
 
+
 class Editor {
     public:
         Editor();
@@ -16,9 +17,14 @@ class Editor {
         
         void displayStepMarker(int line);
 
+        bool handleGoRequest();
+        bool goRequested = false;
+        bool handleStepInRequest();
+
     private:
         TextEditor editor;
         std::unordered_set<int> breakpoints;
+        bool stepInRequested = false;
 
         void setBreakpoint(int line);
         void removeBreakpoint(int line);

@@ -33,6 +33,7 @@ class SimulationInterface {
 
         bool initWindow();
         bool initImGui();
+        bool isRunning = false;
         void shutdown();
 
         void render();

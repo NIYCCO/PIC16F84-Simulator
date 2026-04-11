@@ -46,6 +46,7 @@ Editor::Editor() {
 void Editor::openFile(const std::string &path) {
     try {
         clearBreakpoints();
+
         std::ifstream stream(path.c_str());
         std::string text;
 
@@ -57,6 +58,7 @@ void Editor::openFile(const std::string &path) {
         stream.close();
 
         editor.SetText(text);
+
     } catch(const std::exception& e) {
         std::cerr << e.what() << '\n';
     }
@@ -66,6 +68,7 @@ void Editor::render() {
     ImGui::Begin("Text Editor", nullptr, ImGuiWindowFlags_NoMove);
     if (ImGui::Button("Step in", ImVec2(80, 0))) {
         std::cout << "Step in button clicked!" << std::endl;
+        stepInRequested = true;
     }
     ImGui::SameLine();
     if (ImGui::Button("Step out", ImVec2(80, 0))) {
@@ -78,6 +81,7 @@ void Editor::render() {
     ImGui::SameLine();
     if (ImGui::Button("Go", ImVec2(80, 0))) {
         std::cout << "Go button clicked!" << std::endl;
+        goRequested = true;
     }
     ImGui::Spacing();
     ImGui::BeginChild("TextEditor", ImVec2(0.0f, 0.0f), ImGuiChildFlags_None);
@@ -104,5 +108,21 @@ void Editor::toggleBreakpoint(int line) {
 
 void Editor::displayStepMarker(int line) {
     editor.ClearMarkers();
-    editor.AddMarker(line-1, 0, IM_COL32(128, 0, 32, 128), "", "");
+    editor.AddMarker(line, 0, IM_COL32(128, 0, 32, 128), "", "");
+}
+
+bool Editor::handleStepInRequest() {
+    if (stepInRequested) {
+        stepInRequested = false;
+        return true;
+    }
+    return false;
+}
+
+bool Editor::handleGoRequest() {
+    if (goRequested) {
+        goRequested = false;
+        return true;
+    }
+    return false;
 }
