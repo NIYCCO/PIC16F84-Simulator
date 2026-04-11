@@ -43,3 +43,7 @@ int PIC16F84::getWRegister() const {
 int PIC16F84::getStatusRegister() const {
     return cpu.getStatusRegister();
 }
+
+int PIC16F84::getLineForAddress(int address) const {
+    return programMemory.getLineForAddress(address);
+}

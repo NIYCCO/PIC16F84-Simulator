@@ -1,7 +1,6 @@
 #include <iostream>
 #include <exception>
 #include <fstream>
-#include <sstream>
 
 #include "imgui.h"
 #include "editor.h"
@@ -47,8 +46,6 @@ Editor::Editor() {
 void Editor::openFile(const std::string &path) {
     try {
         clearBreakpoints();
-        addressToLine.clear();
-        lineToAddress.clear();
 
         std::ifstream stream(path.c_str());
         std::string text;
@@ -61,25 +58,6 @@ void Editor::openFile(const std::string &path) {
         stream.close();
 
         editor.SetText(text);
-
-        std::istringstream iss(text);
-        std::string line;
-        int lineNumber = 0;
-
-        while (std::getline(iss, line)) {
-            if (line.length() >= 4) {
-                try {
-                    std::string address_str = line.substr(0, 4);
-                    int address = std::stoi(address_str, nullptr, 16);
-
-                    addressToLine[address] = lineNumber;
-                    lineToAddress[lineNumber] = address;
-                } catch (...) {
-                    // Keine echte Befehlszeile, z. B. Kommentar oder Leerzeile
-                }
-            }
-            lineNumber++;
-        }
 
     } catch(const std::exception& e) {
         std::cerr << e.what() << '\n';
@@ -128,17 +106,12 @@ void Editor::toggleBreakpoint(int line) {
     }
 }
 
-void Editor::displayStepMarkerForAddress(int address) {
+void Editor::displayStepMarker(int line) {
     editor.ClearMarkers();
-
-    auto it = addressToLine.find(address);
-    if (it != addressToLine.end()) {
-        int line = it->second;
-        editor.AddMarker(line, 0, IM_COL32(128, 0, 32, 128), "", "");
-    }
+    editor.AddMarker(line, 0, IM_COL32(128, 0, 32, 128), "", "");
 }
 
-bool Editor::consumeStepInRequest() {
+bool Editor::handleStepInRequest() {
     if (stepInRequested) {
         stepInRequested = false;
         return true;
@@ -146,20 +119,7 @@ bool Editor::consumeStepInRequest() {
     return false;
 }
 
-std::unordered_set<int> Editor::getBreakpointAddresses() const {
-    std::unordered_set<int> result;
-
-    for (int line : breakpoints) {
-        auto it = lineToAddress.find(line);
-        if (it != lineToAddress.end()) {
-            result.insert(it->second);
-        }
-    }
-
-    return result;
-}
-
-bool Editor::consumeGoRequest() {
+bool Editor::handleGoRequest() {
     if (goRequested) {
         goRequested = false;
         return true;

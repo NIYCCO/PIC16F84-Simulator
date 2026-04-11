@@ -2,7 +2,6 @@
 
 #include <string>
 #include <unordered_set>
-#include <unordered_map>
 
 #include "TextEditor.h"
 
@@ -15,19 +14,16 @@ class Editor {
         void render();
 
         std::unordered_set<int> getBreakpoints() const { return breakpoints; }
-        std::unordered_set<int> getBreakpointAddresses() const;
         
-        void displayStepMarkerForAddress(int address);
+        void displayStepMarker(int line);
 
-        bool consumeGoRequest();
+        bool handleGoRequest();
         bool goRequested = false;
-        bool consumeStepInRequest();
+        bool handleStepInRequest();
 
     private:
         TextEditor editor;
         std::unordered_set<int> breakpoints;
-        std::unordered_map<int, int> addressToLine;
-        std::unordered_map<int, int> lineToAddress;
         bool stepInRequested = false;
 
         void setBreakpoint(int line);

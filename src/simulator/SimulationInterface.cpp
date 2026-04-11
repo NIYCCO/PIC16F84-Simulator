@@ -210,12 +210,13 @@ void SimulationInterface::renderPanels() {
 
     editor.render();
 
-    if (editor.consumeStepInRequest()) {
+    if (editor.handleStepInRequest()) {
     pic.step();
-    editor.displayStepMarkerForAddress(pic.getPC());
+    int line = pic.getLineForAddress(pic.getPC());
+    editor.displayStepMarker(line);
     }
 
-    if (editor.consumeGoRequest()) {
+    if (editor.handleGoRequest()) {
     isRunning = true;
     }
 
@@ -232,13 +233,16 @@ void SimulationInterface::renderPanels() {
     ImGui::End();
 
     if (isRunning) {
-    auto breakpoints = editor.getBreakpointAddresses();
+    auto breakpoints = editor.getBreakpoints();
 
-    if (breakpoints.find(pic.getPC()) != breakpoints.end()) {
+    int currentLine = pic.getLineForAddress(pic.getPC());
+
+    if (breakpoints.find(currentLine) != breakpoints.end()) {
         isRunning = false;
     } else {
         pic.step();
-        editor.displayStepMarkerForAddress(pic.getPC());
+        int line = pic.getLineForAddress(pic.getPC());
+        editor.displayStepMarker(line);
     }
 }
 }
@@ -250,7 +254,8 @@ void SimulationInterface::handleFileDialog() {
         std::cout << "Selected filename: " << fileDialog->GetSelected().string() << std::endl;
         editor.openFile(fileDialog->GetSelected().string());
         pic.loadProgram(fileDialog->GetSelected().string());
-        editor.displayStepMarkerForAddress(pic.getPC());
+        int line = pic.getLineForAddress(pic.getPC());
+        editor.displayStepMarker(line);
         fileDialog->ClearSelected();
     }
 }

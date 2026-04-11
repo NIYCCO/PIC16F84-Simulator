@@ -19,6 +19,7 @@ class PIC16F84 {
         int getWRegister() const;
         int getStatusRegister() const;
 
+        int getLineForAddress(int address) const;
 
     private:
         ProgramMemory programMemory;

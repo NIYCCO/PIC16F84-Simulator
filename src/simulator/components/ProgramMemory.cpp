@@ -9,6 +9,7 @@ ProgramMemory::ProgramMemory() {
     for (int i = 0; i < 1024; i++) {
         memory[i] = 0;
         used[i] = false;
+        addressToLine[i] = -1;
     }
 }
 
@@ -23,10 +24,12 @@ void ProgramMemory::loadFromFile(const std::string& filename) {
     }
 
     std::string line;
+    int currentLineNumber = 0;
 
     while (std::getline(file, line)) {
         // std::cout << "Zeile: [" << line << "]" << std::endl;  //debug
         if (line.length() < 9) {
+            currentLineNumber++;
             continue;
         }
 
@@ -38,17 +41,20 @@ void ProgramMemory::loadFromFile(const std::string& filename) {
 
             int address = std::stoi(address_str, nullptr, 16);
             int command = std::stoi(command_str, nullptr, 16);
+            addressToLine[address] = currentLineNumber;
             // std::cout << "  parsed address: 0x" << std::hex << address << std::endl; //debug
             // std::cout << "  parsed command: 0x" << std::hex << command << std::endl; //debug
 
             if (address >= 0 && address < 1024) {
                 memory[address] = command;
                 used[address] = true;
+                addressToLine[address] = currentLineNumber;
                 // std::cout << "  -> gespeichert!" << std::endl; //debug
             }
         } catch (...) {
             // std::cout << "  -> FEHLER beim Parsen!" << std::endl; //debug
         }
+        currentLineNumber++;
     }
 
     file.close();
@@ -81,4 +87,9 @@ bool ProgramMemory::isUsed(int address) const {
         return false;
     }
     return used[address];
+}
+
+int ProgramMemory::getLineForAddress(int address) const {
+    if (address < 0 || address >= 1024) return -1;
+    return addressToLine[address];
 }
