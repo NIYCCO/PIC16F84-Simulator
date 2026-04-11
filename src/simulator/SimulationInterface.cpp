@@ -146,7 +146,12 @@ void SimulationInterface::setupDocking() {
 		ImGuiID dock_id_right = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Right, 0.20f, NULL, &dock_main_id);
 		ImGuiID dock_id_bottom = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Down, 0.50f, NULL, &dock_main_id);
 
+        ImGuiID dock_id_left_bottom = ImGui::DockBuilderSplitNode(dock_id_left, ImGuiDir_Down, 0.50f, NULL, &dock_id_left);
+
         ImGui::DockBuilderDockWindow("Memory Editor", dock_id_left);
+        ImGui::DockBuilderDockWindow("Spezialfunktionsregister", dock_id_left_bottom);
+
+
 		ImGui::DockBuilderDockWindow("Properties", dock_main_id);
 		ImGui::DockBuilderDockWindow("Stats", dock_id_right);
 		ImGui::DockBuilderDockWindow("Viewport", dock_main_id);
@@ -195,6 +200,83 @@ void SimulationInterface::renderPanels() {
 
     ImGui::Begin("Viewport", nullptr, ImGuiWindowFlags_NoMove);
     ImGui::Text("Hier könnte dein Simulator-Output hin");
+    ImGui::End();
+
+    ImGui::Begin("Spezialfunktionsregister", nullptr, ImGuiWindowFlags_NoMove);
+
+    ImGui::SeparatorText("sichtbar");
+    ImGui::BeginChild("sichtbar", ImVec2(0.0f, 0.0f), ImGuiChildFlags_Borders | ImGuiChildFlags_AutoResizeY);
+        if (ImGui::BeginTable("tablesichtbar", 2, ImGuiTableFlags_SizingStretchSame)) {
+
+            ImGui::TableNextRow();
+            ImGui::TableNextColumn();
+            ImGui::Text("W-Reg");
+            ImGui::TableNextColumn();
+            ImGui::Text("0x00");
+            ImGui::TableNextRow();
+            ImGui::TableNextColumn();
+            ImGui::Text("FSR");
+            ImGui::TableNextColumn();
+            ImGui::Text("0x00");
+            ImGui::TableNextRow();
+            ImGui::TableNextColumn();
+            ImGui::Text("PCL");
+            ImGui::TableNextColumn();
+            ImGui::Text("0x00");
+            ImGui::TableNextRow();
+            ImGui::TableNextColumn();
+            ImGui::Text("PCLATH");
+            ImGui::TableNextColumn();
+            ImGui::Text("0x00");
+            ImGui::TableNextRow();
+            ImGui::TableNextColumn();
+            ImGui::Text("Status");
+            ImGui::TableNextColumn();
+            ImGui::Text("0x00");
+
+            ImGui::EndTable();
+        }
+        
+    ImGui::EndChild();
+
+    ImGui::SeparatorText("versteckt");
+    ImGui::BeginChild("versteckt", ImVec2(0.0f, 0.0f), ImGuiChildFlags_Borders | ImGuiChildFlags_AutoResizeY);
+        if (ImGui::BeginTable("tableversteckt", 2, ImGuiTableFlags_SizingStretchSame)) {
+
+            ImGui::TableNextRow();
+            ImGui::TableNextColumn();
+            ImGui::Text("PC");
+            ImGui::TableNextColumn();
+            ImGui::Text("0x00");
+            ImGui::TableNextRow();
+            ImGui::TableNextColumn();
+            ImGui::Text("Stackpointer");
+            ImGui::TableNextColumn();
+            ImGui::Text("0x00");
+            ImGui::TableNextRow();
+            ImGui::TableNextColumn();
+            ImGui::Text("VT");
+            ImGui::TableNextColumn();
+            ImGui::Text("0x00");
+            ImGui::TableNextRow();
+            ImGui::TableNextColumn();
+            ImGui::Text("WDT aktiv");
+            ImGui::TableNextColumn();
+            ImGui::Text("0x00");
+            ImGui::TableNextRow();
+            ImGui::TableNextColumn();
+            ImGui::Text("WDT");
+            ImGui::TableNextColumn();
+            ImGui::Text("0x00");
+
+            ImGui::EndTable();
+        }
+    ImGui::EndChild();
+
+    ImGui::SeparatorText("Stack");
+    ImGui::BeginChild("Stack", ImVec2(0.0f, 0.0f), ImGuiChildFlags_Borders | ImGuiChildFlags_AutoResizeY);
+        ImGui::Text("Hier könnte der Stack angezeigt werden");
+    ImGui::EndChild();
     ImGui::End();
 
     editor.render();
