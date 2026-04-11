@@ -211,13 +211,13 @@ void SimulationInterface::renderPanels() {
     editor.render();
 
     if (editor.handleStepInRequest()) {
-    pic.step();
-    int line = pic.getLineForAddress(pic.getPC());
-    editor.displayStepMarker(line);
+        pic.step();
+        int line = pic.getLineForAddress(pic.getPC());
+        editor.displayStepMarker(line);
     }
 
     if (editor.handleGoRequest()) {
-    isRunning = true;
+        isRunning = !isRunning;
     }
 
     static uint8_t data[256];
