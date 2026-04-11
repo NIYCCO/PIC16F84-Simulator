@@ -83,6 +83,25 @@ void Editor::render() {
         std::cout << "Go button clicked!" << std::endl;
         goRequested = true;
     }
+
+    const char* maxText = "Laufzeit: 00.000,00 \xC2\xB5s";
+    ImVec2 maxTextSize = ImGui::CalcTextSize(maxText);
+    float fixedButtonWidth = maxTextSize.x + ImGui::GetStyle().FramePadding.x * 2.0f;
+
+    float aktuelleLaufzeit = 0.0f;
+    char laufzeitText[64];
+    snprintf(laufzeitText, sizeof(laufzeitText), "Laufzeit: %.2f \xC2\xB5s", aktuelleLaufzeit);
+
+    float rightEdgeX = ImGui::GetWindowWidth() - fixedButtonWidth - ImGui::GetStyle().WindowPadding.x;
+    ImGui::SameLine(rightEdgeX);
+
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImGui::GetStyleColorVec4(ImGuiCol_Button));
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImGui::GetStyleColorVec4(ImGuiCol_Button));
+
+    ImGui::Button(laufzeitText, ImVec2(fixedButtonWidth, 0.0f));
+
+    ImGui::PopStyleColor(2);
+
     ImGui::Spacing();
     ImGui::BeginChild("TextEditor", ImVec2(0.0f, 0.0f), ImGuiChildFlags_None);
     editor.Render("TextEditor");

@@ -223,7 +223,10 @@ void SimulationInterface::renderPanels() {
             ImGui::TableNextColumn();
             ImGui::Text("W-Reg");
             ImGui::TableNextColumn();
-            ImGui::Text("0x00");
+            char wRegHex[5] = "0x00";
+            ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
+            ImGui::InputText("##WReg", wRegHex, IM_COUNTOF(wRegHex), ImGuiInputTextFlags_CharsHexadecimal);
+            ImGui::PopStyleColor();
             ImGui::TableNextRow();
             ImGui::TableNextColumn();
             ImGui::Text("FSR");
@@ -273,7 +276,8 @@ void SimulationInterface::renderPanels() {
             ImGui::TableNextColumn();
             ImGui::Text("WDT aktiv");
             ImGui::TableNextColumn();
-            ImGui::Text("0x00");
+            bool wdtActive = false; // Hier solltest du den tatsächlichen Status der WDT abfragen
+            ImGui::Checkbox("##WDT", &wdtActive);
             ImGui::TableNextRow();
             ImGui::TableNextColumn();
             ImGui::Text("WDT");
