@@ -13,6 +13,7 @@ ProgramMemory::ProgramMemory() {
 }
 
 void ProgramMemory::loadFromFile(const std::string& filename) {
+    std::cout << "=== loadFromFile START ===" << std::endl;
     std::ifstream file(filename.c_str());
     printf("Lade Programm aus Datei: %s\n", filename.c_str());
 
@@ -24,6 +25,7 @@ void ProgramMemory::loadFromFile(const std::string& filename) {
     std::string line;
 
     while (std::getline(file, line)) {
+        // std::cout << "Zeile: [" << line << "]" << std::endl;  //debug
         if (line.length() < 9) {
             continue;
         }
@@ -31,16 +33,21 @@ void ProgramMemory::loadFromFile(const std::string& filename) {
         try {
             std::string address_str = line.substr(0, 4);
             std::string command_str = line.substr(5, 4);
+            //std::cout << "  address_str: [" << address_str << "]" << std::endl; //debug
+            // std::cout << "  command_str: [" << command_str << "]" << std::endl; //debug
 
             int address = std::stoi(address_str, nullptr, 16);
             int command = std::stoi(command_str, nullptr, 16);
+            // std::cout << "  parsed address: 0x" << std::hex << address << std::endl; //debug
+            // std::cout << "  parsed command: 0x" << std::hex << command << std::endl; //debug
 
             if (address >= 0 && address < 1024) {
                 memory[address] = command;
                 used[address] = true;
+                // std::cout << "  -> gespeichert!" << std::endl; //debug
             }
         } catch (...) {
-            // ungueltige Zeilen ignorieren
+            // std::cout << "  -> FEHLER beim Parsen!" << std::endl; //debug
         }
     }
 

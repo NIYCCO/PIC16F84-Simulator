@@ -37,4 +37,13 @@ public:
     int fetch();
     void step();
     void printState() const;
+    
+    int getPC() const { return pc; }
+    int getInstructionRegister() const { return instructionRegister; }
+    int getWRegister() const { return wRegister & 0xFF; }
+    int getStatusRegister() const { return statusRegister & 0xFF; }
+
+    bool getZeroFlag() const { return getStatusBit(STATUS_Z); }
+    bool getDigitCarryFlag() const { return getStatusBit(STATUS_DC); }
+    bool getCarryFlag() const { return getStatusBit(STATUS_C); }
 };

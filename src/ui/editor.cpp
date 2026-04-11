@@ -1,6 +1,7 @@
 #include <iostream>
 #include <exception>
 #include <fstream>
+#include <sstream>
 
 #include "imgui.h"
 #include "editor.h"
@@ -46,6 +47,9 @@ Editor::Editor() {
 void Editor::openFile(const std::string &path) {
     try {
         clearBreakpoints();
+        addressToLine.clear();
+        lineToAddress.clear();
+
         std::ifstream stream(path.c_str());
         std::string text;
 
@@ -57,6 +61,26 @@ void Editor::openFile(const std::string &path) {
         stream.close();
 
         editor.SetText(text);
+
+        std::istringstream iss(text);
+        std::string line;
+        int lineNumber = 0;
+
+        while (std::getline(iss, line)) {
+            if (line.length() >= 4) {
+                try {
+                    std::string address_str = line.substr(0, 4);
+                    int address = std::stoi(address_str, nullptr, 16);
+
+                    addressToLine[address] = lineNumber;
+                    lineToAddress[lineNumber] = address;
+                } catch (...) {
+                    // Keine echte Befehlszeile, z. B. Kommentar oder Leerzeile
+                }
+            }
+            lineNumber++;
+        }
+
     } catch(const std::exception& e) {
         std::cerr << e.what() << '\n';
     }
@@ -66,6 +90,7 @@ void Editor::render() {
     ImGui::Begin("Text Editor", nullptr, ImGuiWindowFlags_NoMove);
     if (ImGui::Button("Step in", ImVec2(80, 0))) {
         std::cout << "Step in button clicked!" << std::endl;
+        stepInRequested = true;
     }
     ImGui::SameLine();
     if (ImGui::Button("Step out", ImVec2(80, 0))) {
@@ -78,6 +103,7 @@ void Editor::render() {
     ImGui::SameLine();
     if (ImGui::Button("Go", ImVec2(80, 0))) {
         std::cout << "Go button clicked!" << std::endl;
+        goRequested = true;
     }
     ImGui::Spacing();
     ImGui::BeginChild("TextEditor", ImVec2(0.0f, 0.0f), ImGuiChildFlags_None);
@@ -102,7 +128,41 @@ void Editor::toggleBreakpoint(int line) {
     }
 }
 
-void Editor::displayStepMarker(int line) {
+void Editor::displayStepMarkerForAddress(int address) {
     editor.ClearMarkers();
-    editor.AddMarker(line-1, 0, IM_COL32(128, 0, 32, 128), "", "");
+
+    auto it = addressToLine.find(address);
+    if (it != addressToLine.end()) {
+        int line = it->second;
+        editor.AddMarker(line, 0, IM_COL32(128, 0, 32, 128), "", "");
+    }
+}
+
+bool Editor::consumeStepInRequest() {
+    if (stepInRequested) {
+        stepInRequested = false;
+        return true;
+    }
+    return false;
+}
+
+std::unordered_set<int> Editor::getBreakpointAddresses() const {
+    std::unordered_set<int> result;
+
+    for (int line : breakpoints) {
+        auto it = lineToAddress.find(line);
+        if (it != lineToAddress.end()) {
+            result.insert(it->second);
+        }
+    }
+
+    return result;
+}
+
+bool Editor::consumeGoRequest() {
+    if (goRequested) {
+        goRequested = false;
+        return true;
+    }
+    return false;
 }
