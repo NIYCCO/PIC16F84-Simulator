@@ -108,7 +108,8 @@ void Editor::toggleBreakpoint(int line) {
 
 void Editor::displayStepMarker(int line) {
     editor.ClearMarkers();
-    editor.AddMarker(line, 0, IM_COL32(128, 0, 32, 128), "", "");
+    editor.AddMarker(line, 0, IM_COL32( 32,  96, 160, 255), "", "");
+    editor.ScrollToLine(line, TextEditor::Scroll::alignMiddle);
 }
 
 bool Editor::handleStepInRequest() {

@@ -258,7 +258,7 @@ void SimulationInterface::renderPanels() {
             ImGui::TableNextColumn();
             ImGui::Text("PC");
             ImGui::TableNextColumn();
-            ImGui::Text("0x00");
+            ImGui::Text("0x%02X", pic.getPC());
             ImGui::TableNextRow();
             ImGui::TableNextColumn();
             ImGui::Text("Stackpointer");
