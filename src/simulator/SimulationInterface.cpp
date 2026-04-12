@@ -142,7 +142,7 @@ void SimulationInterface::setupDocking() {
 		ImGui::DockBuilderAddNode(dockspace_id, 0);
 
 		ImGuiID dock_main_id = dockspace_id;
-		ImGuiID dock_id_left = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Left, 0.175f, NULL, &dock_main_id);
+		ImGuiID dock_id_left = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Left, 0.20f, NULL, &dock_main_id);
 		ImGuiID dock_id_right = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Right, 0.20f, NULL, &dock_main_id);
 		ImGuiID dock_id_bottom = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Down, 0.50f, NULL, &dock_main_id);
 
@@ -292,7 +292,112 @@ void SimulationInterface::renderPanels() {
     ImGui::BeginChild("Stack", ImVec2(0.0f, 0.0f), ImGuiChildFlags_Borders | ImGuiChildFlags_AutoResizeY);
         ImGui::Text("Hier könnte der Stack angezeigt werden");
     ImGui::EndChild();
+    ImGui::SeparatorEx(ImGuiSeparatorFlags_Horizontal, 3.0f);
+
+    ImGui::BeginChild("GPR", ImVec2(0.0f, 0.0f), ImGuiChildFlags_Borders | ImGuiChildFlags_AutoResizeY);
+        if (ImGui::BeginTable("tableGPR", 8, ImGuiTableFlags_SizingStretchSame)) {
+            ImGui::TableSetupColumn("IRP");
+            ImGui::TableSetupColumn("RP");
+            ImGui::TableSetupColumn("RP0");
+            ImGui::TableSetupColumn("TO");
+            ImGui::TableSetupColumn("PD");
+            ImGui::TableSetupColumn("Z");
+            ImGui::TableSetupColumn("DC");
+            ImGui::TableSetupColumn("C");
+            ImGui::TableHeadersRow();
+
+            ImGui::TableNextRow();
+            ImGui::TableNextColumn();
+            ImGui::Text("0");
+            ImGui::TableNextColumn();
+            ImGui::Text("0");
+            ImGui::TableNextColumn();
+            ImGui::Text("0");
+            ImGui::TableNextColumn();
+            ImGui::Text("0");
+            ImGui::TableNextColumn();
+            ImGui::Text("0");
+            ImGui::TableNextColumn();
+            ImGui::Text("0");
+            ImGui::TableNextColumn();
+            ImGui::Text("0");
+            ImGui::TableNextColumn();
+            ImGui::Text("0");
+
+            ImGui::EndTable();
+        }
+    ImGui::EndChild();
+
+    ImGui::BeginChild("Option", ImVec2(0.0f, 0.0f), ImGuiChildFlags_Borders | ImGuiChildFlags_AutoResizeY);
+        if (ImGui::BeginTable("tableOption", 8, ImGuiTableFlags_SizingStretchSame)) {
+            ImGui::TableSetupColumn("RBP");
+            ImGui::TableSetupColumn("IntEdg");
+            ImGui::TableSetupColumn("T0CS");
+            ImGui::TableSetupColumn("T0SE");
+            ImGui::TableSetupColumn("PSA");
+            ImGui::TableSetupColumn("PS2");
+            ImGui::TableSetupColumn("PS1");
+            ImGui::TableSetupColumn("PS0");
+            ImGui::TableHeadersRow();
+
+            ImGui::TableNextRow();
+            ImGui::TableNextColumn();
+            ImGui::Text("0");
+            ImGui::TableNextColumn();
+            ImGui::Text("0");
+            ImGui::TableNextColumn();
+            ImGui::Text("0");
+            ImGui::TableNextColumn();
+            ImGui::Text("0");
+            ImGui::TableNextColumn();
+            ImGui::Text("0");
+            ImGui::TableNextColumn();
+            ImGui::Text("0");
+            ImGui::TableNextColumn();
+            ImGui::Text("0");
+            ImGui::TableNextColumn();
+            ImGui::Text("0");
+
+            ImGui::EndTable();
+        }
+    ImGui::EndChild();
+
+    ImGui::BeginChild("INTCON", ImVec2(0.0f, 0.0f), ImGuiChildFlags_Borders | ImGuiChildFlags_AutoResizeY);
+        if (ImGui::BeginTable("tableINTCON", 8, ImGuiTableFlags_SizingStretchSame)) {
+            ImGui::TableSetupColumn("GIE");
+            ImGui::TableSetupColumn("PIE");
+            ImGui::TableSetupColumn("T0IE");
+            ImGui::TableSetupColumn("INTE");
+            ImGui::TableSetupColumn("RBIE");
+            ImGui::TableSetupColumn("T0IF");
+            ImGui::TableSetupColumn("INTF");
+            ImGui::TableSetupColumn("RBIF");
+            ImGui::TableHeadersRow();
+
+            ImGui::TableNextRow();
+            ImGui::TableNextColumn();
+            ImGui::Text("0");
+            ImGui::TableNextColumn();
+            ImGui::Text("0");
+            ImGui::TableNextColumn();
+            ImGui::Text("0");
+            ImGui::TableNextColumn();
+            ImGui::Text("0");
+            ImGui::TableNextColumn();
+            ImGui::Text("0");
+            ImGui::TableNextColumn();
+            ImGui::Text("0");
+            ImGui::TableNextColumn();
+            ImGui::Text("0");
+            ImGui::TableNextColumn();
+            ImGui::Text("0");
+
+            ImGui::EndTable();
+        }
+    ImGui::EndChild();
+
     ImGui::End();
+
 
     editor.render();
 
