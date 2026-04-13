@@ -292,6 +292,34 @@ void CPU::executeRrf(int instruction) {
     else dataMemory.write(address, result);
 }
 
+void CPU::executeBcf(int instruction) {
+    int address = instruction & 0x7F;
+    int bit = (instruction >> 7) & 0x07;
+    int value = dataMemory.read(address);
+    dataMemory.write(address, value & ~(1 << bit));
+}
+
+void CPU::executeBsf(int instruction) {
+    int address = instruction & 0x7F;
+    int bit = (instruction >> 7) & 0x07;
+    int value = dataMemory.read(address);
+    dataMemory.write(address, value | (1 << bit));
+}
+
+void CPU::executeBtfsc(int instruction) {
+    int address = instruction & 0x7F;
+    int bit = (instruction >> 7) & 0x07;
+    int value = dataMemory.read(address);
+    if (((value >> bit) & 0x01) == 0) pc++;  // extra skip wenn Bit gelöscht
+}
+
+void CPU::executeBtfss(int instruction) {
+    int address = instruction & 0x7F;
+    int bit = (instruction >> 7) & 0x07;
+    int value = dataMemory.read(address);
+    if (((value >> bit) & 0x01) == 1) pc++;  // extra skip wenn Bit gesetzt
+}
+
 void CPU::decodeAndExecute(int instruction) {
     if ((instruction & 0x3F00) == Instruction::MOVLW) {
         executeMovlw(instruction);
@@ -321,72 +349,88 @@ void CPU::decodeAndExecute(int instruction) {
         executeGoto(instruction);
     }
     else if ((instruction & 0x3F80) == Instruction::MOVWF) {
-    executeMovwf(instruction);
-    pc++;
+        executeMovwf(instruction);
+        pc++;
     }
     else if ((instruction & 0x3F00) == Instruction::MOVF) {
-    executeMovf(instruction);
-    pc++;
+        executeMovf(instruction);
+        pc++;
     }
     else if ((instruction & 0x3F80) == Instruction::CLRF) {
-    executeClrf(instruction);
-    pc++;
+        executeClrf(instruction);
+        pc++;
     }
     else if ((instruction & 0x3F80) == Instruction::CLRW) {
-    executeClrw(instruction);
-    pc++;
+        executeClrw(instruction);
+        pc++;
     }
     else if ((instruction & 0x3F00) == Instruction::ADDWF) {
-    executeAddwf(instruction);
-    pc++;
+        executeAddwf(instruction);
+        pc++;
     }
     else if ((instruction & 0x3F00) == Instruction::SUBWF) {
-    executeSubwf(instruction);
-    pc++;
+        executeSubwf(instruction);
+        pc++;
     }
     else if ((instruction & 0x3F00) == Instruction::COMF) {
-    executeComf(instruction);
-    pc++;
+        executeComf(instruction);
+        pc++;
     }
     else if ((instruction & 0x3F00) == Instruction::ANDWF) {
-    executeAndwf(instruction);
-    pc++;
+        executeAndwf(instruction);
+        pc++;
     }
     else if ((instruction & 0x3F00) == Instruction::IORWF) {
-    executeIorwf(instruction);
-    pc++;
+        executeIorwf(instruction);
+        pc++;
     }
     else if ((instruction & 0x3F00) == Instruction::XORWF) {
-    executeXorwf(instruction);
-    pc++;
+        executeXorwf(instruction);
+        pc++;
     }
     else if ((instruction & 0x3F00) == Instruction::SWAPF) {
-    executeSwapf(instruction);
-    pc++;
+        executeSwapf(instruction);
+        pc++;
     }
     else if ((instruction & 0x3F00) == Instruction::DECF) {
-    executeDecf(instruction);
-    pc++;
+        executeDecf(instruction);
+        pc++;
     }
     else if ((instruction & 0x3F00) == Instruction::INCF) {
-    executeIncf(instruction);
-    pc++;
+        executeIncf(instruction);
+        pc++;
     }
     else if ((instruction & 0x3F00) == Instruction::DECFSZ) {
-    executeDecfsz(instruction);
-    pc++;
+        executeDecfsz(instruction);
+        pc++;
     }
     else if ((instruction & 0x3F00) == Instruction::INCFSZ) {
-    executeIncfsz(instruction);
-    pc++;
+        executeIncfsz(instruction);
+        pc++;
     }
     else if ((instruction & 0x3F00) == Instruction::RLF) {
-    executeRlf(instruction);
-    pc++;
+        executeRlf(instruction);
+        pc++;
     }
     else if ((instruction & 0x3F00) == Instruction::RRF) {
-    executeRrf(instruction);
-    pc++;
+        executeRrf(instruction);
+        pc++;
+    }
+    else if ((instruction & 0x3C00) == Instruction::BCF) {
+        executeBcf(instruction);
+        pc++;
+    }
+    else if ((instruction & 0x3C00) == Instruction::BSF) {
+        executeBsf(instruction);
+        pc++;
+    }
+    else if ((instruction & 0x3C00) == Instruction::BTFSC) {
+        executeBtfsc(instruction);
+        pc++;
+    }
+    else if ((instruction & 0x3C00) == Instruction::BTFSS) {
+        executeBtfss(instruction);
+        pc++;
     }
     else {
         std::cout << "Unbekannter oder noch nicht implementierter Befehl: 0x"

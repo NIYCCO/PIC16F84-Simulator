@@ -46,6 +46,10 @@ private:
     void executeIncfsz(int instruction);
     void executeRlf(int instruction);
     void executeRrf(int instruction);
+    void executeBcf(int instruction);
+    void executeBsf(int instruction);
+    void executeBtfsc(int instruction);
+    void executeBtfss(int instruction);
 
     void decodeAndExecute(int instruction);
 
