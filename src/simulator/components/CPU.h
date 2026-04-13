@@ -46,4 +46,6 @@ public:
     bool getZeroFlag() const { return getStatusBit(STATUS_Z); }
     bool getDigitCarryFlag() const { return getStatusBit(STATUS_DC); }
     bool getCarryFlag() const { return getStatusBit(STATUS_C); }
+
+    void setWRegister(int value) { wRegister = value & 0xFF; }
 };

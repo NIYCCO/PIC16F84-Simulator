@@ -19,6 +19,8 @@ class PIC16F84 {
         int getWRegister() const;
         int getStatusRegister() const;
 
+        void setWRegister(int value) { cpu.setWRegister(value); }
+
         int getLineForAddress(int address) const;
 
     private:

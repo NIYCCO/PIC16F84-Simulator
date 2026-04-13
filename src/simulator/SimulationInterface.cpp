@@ -223,9 +223,15 @@ void SimulationInterface::renderPanels() {
             ImGui::TableNextColumn();
             ImGui::Text("W-Reg");
             ImGui::TableNextColumn();
-            char wRegHex[5] = "0x00";
             ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
-            ImGui::InputText("##WReg", wRegHex, IM_COUNTOF(wRegHex), ImGuiInputTextFlags_CharsHexadecimal);
+            // Hier InputText (Für W-Reg)
+            uint8_t wRegVal = (uint8_t)pic.getWRegister();
+            ImGui::InputScalar("##wreg", ImGuiDataType_U8, &wRegVal, NULL, NULL, "%02X", ImGuiInputTextFlags_CharsHexadecimal);
+
+            // 3. Prüfen, ob die Eingabe abgeschlossen wurde
+            if (ImGui::IsItemDeactivatedAfterEdit()) {
+                pic.setWRegister(wRegVal);
+            }
             ImGui::PopStyleColor();
             ImGui::TableNextRow();
             ImGui::TableNextColumn();
@@ -490,3 +496,8 @@ void SimulationInterface::shutdown() {
     glfwTerminate();
 }
 
+std::string SimulationInterface::wregToText(int wreg) {
+    char buffer[5];
+    snprintf(buffer, sizeof(buffer), "0x%02X", wreg);
+    return std::string(buffer);
+}

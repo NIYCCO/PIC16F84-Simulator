@@ -1,5 +1,6 @@
 #pragma once
 
+#include <string>
 #include <GLFW/glfw3.h>
 
 #include "imgui.h"
@@ -42,4 +43,6 @@ class SimulationInterface {
         void renderPanels();
         void renderAboutPopup();
         void handleFileDialog();
+
+        std::string wregToText(int wreg);
 };
