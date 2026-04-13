@@ -103,6 +103,11 @@ void CPU::executeGoto(int instruction) {
 void CPU::executeMovwf(int instruction) {
     int address = instruction & 0x7F;
     dataMemory.write(address, wRegister & 0xFF);
+
+    if (address == 0x02) {
+        pc = (dataMemory.read(0x0A) << 8) | (wRegister & 0xFF);
+        pc %= 1024;
+    }
 }
 
 void CPU::executeMovf(int instruction) {
@@ -143,6 +148,11 @@ void CPU::executeAddwf(int instruction) {
 
     if (d == 0) wRegister = result8;
     else dataMemory.write(address, result8);
+
+    if (d == 1 && address == 0x02) {
+        pc = (dataMemory.read(0x0A) << 8) | result8;
+        pc %= 1024;
+    }
 }
 
 void CPU::executeSubwf(int instruction) {
@@ -520,6 +530,8 @@ void CPU::step() {
               << std::endl;
 
     decodeAndExecute(instructionRegister);
+
+    dataMemory.write(0x02, pc & 0xFF);
 
     std::cout << "    W=0x"
               << std::setw(2) << (wRegister & 0xFF)
