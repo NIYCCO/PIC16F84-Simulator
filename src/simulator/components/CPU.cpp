@@ -218,6 +218,80 @@ void CPU::executeSwapf(int instruction) {
     else dataMemory.write(address, result);
 }
 
+void CPU::executeDecf(int instruction) {
+    int address = instruction & 0x7F;
+    int d = (instruction >> 7) & 0x01;
+    int result = (dataMemory.read(address) - 1) & 0xFF;
+
+    updateZeroFlag(result);
+
+    if (d == 0) wRegister = result;
+    else dataMemory.write(address, result);
+}
+
+void CPU::executeIncf(int instruction) {
+    int address = instruction & 0x7F;
+    int d = (instruction >> 7) & 0x01;
+    int result = (dataMemory.read(address) + 1) & 0xFF;
+
+    updateZeroFlag(result);
+
+    if (d == 0) wRegister = result;
+    else dataMemory.write(address, result);
+}
+
+void CPU::executeDecfsz(int instruction) {
+    int address = instruction & 0x7F;
+    int d = (instruction >> 7) & 0x01;
+    int result = (dataMemory.read(address) - 1) & 0xFF;
+
+    if (d == 0) wRegister = result;
+    else dataMemory.write(address, result);
+
+    if (result == 0) pc++;  // extra skip
+}
+
+void CPU::executeIncfsz(int instruction) {
+    int address = instruction & 0x7F;
+    int d = (instruction >> 7) & 0x01;
+    int result = (dataMemory.read(address) + 1) & 0xFF;
+
+    if (d == 0) wRegister = result;
+    else dataMemory.write(address, result);
+
+    if (result == 0) pc++;  // extra skip
+}
+
+void CPU::executeRlf(int instruction) {
+    int address = instruction & 0x7F;
+    int d = (instruction >> 7) & 0x01;
+    int value = dataMemory.read(address);
+    int oldCarry = getStatusBit(STATUS_C) ? 1 : 0;
+
+    int newCarry = (value >> 7) & 0x01;
+    int result = ((value << 1) | oldCarry) & 0xFF;
+
+    setStatusBit(STATUS_C, newCarry);
+
+    if (d == 0) wRegister = result;
+    else dataMemory.write(address, result);
+}
+
+void CPU::executeRrf(int instruction) {
+    int address = instruction & 0x7F;
+    int d = (instruction >> 7) & 0x01;
+    int value = dataMemory.read(address);
+    int oldCarry = getStatusBit(STATUS_C) ? 1 : 0;
+
+    int newCarry = value & 0x01;
+    int result = ((value >> 1) | (oldCarry << 7)) & 0xFF;
+
+    setStatusBit(STATUS_C, newCarry);
+
+    if (d == 0) wRegister = result;
+    else dataMemory.write(address, result);
+}
+
 void CPU::decodeAndExecute(int instruction) {
     if ((instruction & 0x3F00) == Instruction::MOVLW) {
         executeMovlw(instruction);
@@ -288,6 +362,30 @@ void CPU::decodeAndExecute(int instruction) {
     }
     else if ((instruction & 0x3F00) == Instruction::SWAPF) {
     executeSwapf(instruction);
+    pc++;
+    }
+    else if ((instruction & 0x3F00) == Instruction::DECF) {
+    executeDecf(instruction);
+    pc++;
+    }
+    else if ((instruction & 0x3F00) == Instruction::INCF) {
+    executeIncf(instruction);
+    pc++;
+    }
+    else if ((instruction & 0x3F00) == Instruction::DECFSZ) {
+    executeDecfsz(instruction);
+    pc++;
+    }
+    else if ((instruction & 0x3F00) == Instruction::INCFSZ) {
+    executeIncfsz(instruction);
+    pc++;
+    }
+    else if ((instruction & 0x3F00) == Instruction::RLF) {
+    executeRlf(instruction);
+    pc++;
+    }
+    else if ((instruction & 0x3F00) == Instruction::RRF) {
+    executeRrf(instruction);
     pc++;
     }
     else {

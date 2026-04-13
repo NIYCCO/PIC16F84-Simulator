@@ -40,6 +40,12 @@ private:
     void executeIorwf(int instruction);
     void executeXorwf(int instruction);
     void executeSwapf(int instruction);
+    void executeDecf(int instruction);
+    void executeIncf(int instruction);
+    void executeDecfsz(int instruction);
+    void executeIncfsz(int instruction);
+    void executeRlf(int instruction);
+    void executeRrf(int instruction);
 
     void decodeAndExecute(int instruction);
 
