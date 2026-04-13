@@ -213,7 +213,6 @@ void CPU::executeSwapf(int instruction) {
     int value = dataMemory.read(address);
     int result = ((value & 0x0F) << 4) | ((value & 0xF0) >> 4);
 
-    // SWAPF beeinflusst keine Flags
 
     if (d == 0) wRegister = result;
     else dataMemory.write(address, result);
@@ -249,7 +248,7 @@ void CPU::executeDecfsz(int instruction) {
     if (d == 0) wRegister = result;
     else dataMemory.write(address, result);
 
-    if (result == 0) pc++;  // extra skip
+    if (result == 0) pc++;  
 }
 
 void CPU::executeIncfsz(int instruction) {
@@ -260,7 +259,7 @@ void CPU::executeIncfsz(int instruction) {
     if (d == 0) wRegister = result;
     else dataMemory.write(address, result);
 
-    if (result == 0) pc++;  // extra skip
+    if (result == 0) pc++; 
 }
 
 void CPU::executeRlf(int instruction) {
@@ -311,19 +310,19 @@ void CPU::executeBtfsc(int instruction) {
     int address = instruction & 0x7F;
     int bit = (instruction >> 7) & 0x07;
     int value = dataMemory.read(address);
-    if (((value >> bit) & 0x01) == 0) pc++;  // extra skip wenn Bit gelöscht
+    if (((value >> bit) & 0x01) == 0) pc++; 
 }
 
 void CPU::executeBtfss(int instruction) {
     int address = instruction & 0x7F;
     int bit = (instruction >> 7) & 0x07;
     int value = dataMemory.read(address);
-    if (((value >> bit) & 0x01) == 1) pc++;  // extra skip wenn Bit gesetzt
+    if (((value >> bit) & 0x01) == 1) pc++; 
 }
 
 void CPU::executeCall(int instruction) {
     int target = instruction & 0x07FF;
-    stack.push(pc + 1);  // Rückkehradresse auf Stack
+    stack.push(pc + 1); 
     pc = target % 1024;
 }
 
@@ -339,9 +338,28 @@ void CPU::executeRetlw(int instruction) {
 
 void CPU::executeRetfie(int instruction) {
     pc = stack.pop();
-    // GIE-Bit im INTCON-Register setzen (Adresse 0x0B, Bit 7)
     int intcon = dataMemory.read(0x0B);
     dataMemory.write(0x0B, intcon | 0x80);
+}
+
+void CPU::executeNop() {
+    // macht nichts
+}
+
+void CPU::executeSleep() {
+    int status = dataMemory.read(0x03);
+    status &= ~(1 << 3);  // PD = 0
+    status |=  (1 << 4);  // TO = 1
+    dataMemory.write(0x03, status);
+    // TODO: Simulator in Sleep-Zustand versetzen
+}
+
+void CPU::executeClrwdt() {
+    int status = dataMemory.read(0x03);
+    status |= (1 << 4);  // TO = 1
+    status |= (1 << 3);  // PD = 1
+    dataMemory.write(0x03, status);
+    // TODO: Watchdog-Zähler zurücksetzen wenn Watchdog implementiert
 }
 
 void CPU::decodeAndExecute(int instruction) {
@@ -457,7 +475,7 @@ void CPU::decodeAndExecute(int instruction) {
         pc++;
     }
     else if ((instruction & 0x3800) == Instruction::CALL) {
-    executeCall(instruction);
+        executeCall(instruction);
     }
     else if (instruction == Instruction::RETURN) {
         executeReturn(instruction);
@@ -467,6 +485,18 @@ void CPU::decodeAndExecute(int instruction) {
     }
     else if (instruction == Instruction::RETFIE) {
         executeRetfie(instruction);
+    }
+    else if (instruction == Instruction::NOP) {
+        executeNop();
+        pc++;
+    }
+    else if (instruction == Instruction::SLEEP) {
+        executeSleep();
+        pc++;
+    }
+    else if (instruction == Instruction::CLRWDT) {
+        executeClrwdt();
+        pc++;
     }
     else {
         std::cout << "Unbekannter oder noch nicht implementierter Befehl: 0x"

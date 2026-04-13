@@ -57,6 +57,9 @@ private:
     void executeReturn(int instruction);
     void executeRetlw(int instruction);
     void executeRetfie(int instruction);
+    void executeNop();
+    void executeSleep();
+    void executeClrwdt();
 
     void decodeAndExecute(int instruction);
 
