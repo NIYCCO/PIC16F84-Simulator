@@ -33,6 +33,13 @@ private:
     void executeMovf(int instruction);
     void executeClrf(int instruction);
     void executeClrw(int instruction);   
+    void executeAddwf(int instruction);
+    void executeSubwf(int instruction);
+    void executeComf(int instruction);
+    void executeAndwf(int instruction);
+    void executeIorwf(int instruction);
+    void executeXorwf(int instruction);
+    void executeSwapf(int instruction);
 
     void decodeAndExecute(int instruction);
 

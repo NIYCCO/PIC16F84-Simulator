@@ -127,6 +127,97 @@ void CPU::executeClrw(int instruction) {
     setStatusBit(STATUS_Z, true);
 }
 
+void CPU::executeAddwf(int instruction) {
+    int address = instruction & 0x7F;
+    int d = (instruction >> 7) & 0x01;
+    int f = dataMemory.read(address);
+    int w = wRegister & 0xFF;
+
+    int result = f + w;
+    int result8 = result & 0xFF;
+
+    updateZeroFlag(result8);
+    setStatusBit(STATUS_C, result > 0xFF);
+    setStatusBit(STATUS_DC, ((f & 0x0F) + (w & 0x0F)) > 0x0F);
+
+    if (d == 0) wRegister = result8;
+    else dataMemory.write(address, result8);
+}
+
+void CPU::executeSubwf(int instruction) {
+    int address = instruction & 0x7F;
+    int d = (instruction >> 7) & 0x01;
+    int f = dataMemory.read(address);
+    int w = wRegister & 0xFF;
+
+    int result = f - w;
+    int result8 = result & 0xFF;
+
+    updateZeroFlag(result8);
+    // PIC-Sonderverhalten: kein Invertieren des Carry
+    setStatusBit(STATUS_C, f >= w);
+    setStatusBit(STATUS_DC, (f & 0x0F) >= (w & 0x0F));
+
+    if (d == 0) wRegister = result8;
+    else dataMemory.write(address, result8);
+}
+
+void CPU::executeComf(int instruction) {
+    int address = instruction & 0x7F;
+    int d = (instruction >> 7) & 0x01;
+    int result = (~dataMemory.read(address)) & 0xFF;
+
+    updateZeroFlag(result);
+
+    if (d == 0) wRegister = result;
+    else dataMemory.write(address, result);
+}
+
+void CPU::executeAndwf(int instruction) {
+    int address = instruction & 0x7F;
+    int d = (instruction >> 7) & 0x01;
+    int result = (dataMemory.read(address) & (wRegister & 0xFF)) & 0xFF;
+
+    updateZeroFlag(result);
+
+    if (d == 0) wRegister = result;
+    else dataMemory.write(address, result);
+}
+
+void CPU::executeIorwf(int instruction) {
+    int address = instruction & 0x7F;
+    int d = (instruction >> 7) & 0x01;
+    int result = (dataMemory.read(address) | (wRegister & 0xFF)) & 0xFF;
+
+    updateZeroFlag(result);
+
+    if (d == 0) wRegister = result;
+    else dataMemory.write(address, result);
+}
+
+void CPU::executeXorwf(int instruction) {
+    int address = instruction & 0x7F;
+    int d = (instruction >> 7) & 0x01;
+    int result = (dataMemory.read(address) ^ (wRegister & 0xFF)) & 0xFF;
+
+    updateZeroFlag(result);
+
+    if (d == 0) wRegister = result;
+    else dataMemory.write(address, result);
+}
+
+void CPU::executeSwapf(int instruction) {
+    int address = instruction & 0x7F;
+    int d = (instruction >> 7) & 0x01;
+    int value = dataMemory.read(address);
+    int result = ((value & 0x0F) << 4) | ((value & 0xF0) >> 4);
+
+    // SWAPF beeinflusst keine Flags
+
+    if (d == 0) wRegister = result;
+    else dataMemory.write(address, result);
+}
+
 void CPU::decodeAndExecute(int instruction) {
     if ((instruction & 0x3F00) == Instruction::MOVLW) {
         executeMovlw(instruction);
@@ -169,6 +260,34 @@ void CPU::decodeAndExecute(int instruction) {
     }
     else if ((instruction & 0x3F80) == Instruction::CLRW) {
     executeClrw(instruction);
+    pc++;
+    }
+    else if ((instruction & 0x3F00) == Instruction::ADDWF) {
+    executeAddwf(instruction);
+    pc++;
+    }
+    else if ((instruction & 0x3F00) == Instruction::SUBWF) {
+    executeSubwf(instruction);
+    pc++;
+    }
+    else if ((instruction & 0x3F00) == Instruction::COMF) {
+    executeComf(instruction);
+    pc++;
+    }
+    else if ((instruction & 0x3F00) == Instruction::ANDWF) {
+    executeAndwf(instruction);
+    pc++;
+    }
+    else if ((instruction & 0x3F00) == Instruction::IORWF) {
+    executeIorwf(instruction);
+    pc++;
+    }
+    else if ((instruction & 0x3F00) == Instruction::XORWF) {
+    executeXorwf(instruction);
+    pc++;
+    }
+    else if ((instruction & 0x3F00) == Instruction::SWAPF) {
+    executeSwapf(instruction);
     pc++;
     }
     else {
