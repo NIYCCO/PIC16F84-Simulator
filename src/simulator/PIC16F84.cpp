@@ -1,6 +1,7 @@
 #include "PIC16F84.h"
 
-PIC16F84::PIC16F84() : programMemory(), cpu(programMemory) {
+PIC16F84::PIC16F84() : 
+programMemory(), dataMemory(), cpu(programMemory, dataMemory) {
 }
 
 PIC16F84::~PIC16F84() {
@@ -46,4 +47,8 @@ int PIC16F84::getStatusRegister() const {
 
 int PIC16F84::getLineForAddress(int address) const {
     return programMemory.getLineForAddress(address);
+}
+
+int PIC16F84::getDataMemory(int address) const {
+    return dataMemory.read(address);
 }

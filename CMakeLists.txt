@@ -33,6 +33,8 @@ set(SOURCE_FILES
     src/simulator/components/instructions.h
     src/simulator/components/CPU.h
     src/simulator/components/ProgramMemory.h
+    src/simulator/components/DataMemory.h
+    src/simulator/components/Stack.h
     src/ui/editor.h
 
     src/main.cpp
@@ -40,6 +42,8 @@ set(SOURCE_FILES
     src/simulator/PIC16F84.cpp
     src/simulator/components/CPU.cpp
     src/simulator/components/ProgramMemory.cpp
+    src/simulator/components/DataMemory.cpp
+    src/simulator/components/Stack.cpp
     src/ui/editor.cpp
     external/TextEditor.cpp
 )
