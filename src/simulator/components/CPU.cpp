@@ -4,7 +4,8 @@
 
 #include "instructions.h"
 
-CPU::CPU(const ProgramMemory& pm) : programMemory(pm) {
+CPU::CPU(const ProgramMemory& pm, DataMemory& dm) 
+    : programMemory(pm), dataMemory(dm) {
     reset();
 }
 
@@ -12,7 +13,7 @@ void CPU::reset() {
     pc = 0;
     instructionRegister = 0;
     wRegister = 0;
-    statusRegister = 0;
+    dataMemory.write(0x03, 0);   // STATUS auf 0 zurücksetzen
 }
 
 int CPU::fetch() {
@@ -21,15 +22,17 @@ int CPU::fetch() {
 }
 
 void CPU::setStatusBit(int bit, bool value) {
+    int status = dataMemory.read(0x03);
     if (value) {
-        statusRegister |= (1 << bit);
+        status |= (1 << bit);
     } else {
-        statusRegister &= ~(1 << bit);
+        status &= ~(1 << bit);
     }
+    dataMemory.write(0x03, status);
 }
 
 bool CPU::getStatusBit(int bit) const {
-    return (statusRegister & (1 << bit)) != 0;
+    return (dataMemory.read(0x03) & (1 << bit)) != 0;
 }
 
 void CPU::updateZeroFlag(int value) {
@@ -96,6 +99,34 @@ void CPU::executeGoto(int instruction) {
     pc = target % 1024;
 }
 
+void CPU::executeMovwf(int instruction) {
+    int address = instruction & 0x7F;
+    dataMemory.write(address, wRegister & 0xFF);
+}
+
+void CPU::executeMovf(int instruction) {
+    int address = instruction & 0x7F;
+    int d = (instruction >> 7) & 0x01;
+    int value = dataMemory.read(address);
+    updateZeroFlag(value);
+    if (d == 0) {
+        wRegister = value;
+    } else {
+        dataMemory.write(address, value);
+    }
+}
+
+void CPU::executeClrf(int instruction) {
+    int address = instruction & 0x7F;
+    dataMemory.write(address, 0);
+    setStatusBit(STATUS_Z, true);
+}
+
+void CPU::executeClrw(int instruction) {
+    wRegister = 0;
+    setStatusBit(STATUS_Z, true);
+}
+
 void CPU::decodeAndExecute(int instruction) {
     if ((instruction & 0x3F00) == Instruction::MOVLW) {
         executeMovlw(instruction);
@@ -123,6 +154,22 @@ void CPU::decodeAndExecute(int instruction) {
     }
     else if ((instruction & 0x3800) == Instruction::GOTO) {
         executeGoto(instruction);
+    }
+    else if ((instruction & 0x3F80) == Instruction::MOVWF) {
+    executeMovwf(instruction);
+    pc++;
+    }
+    else if ((instruction & 0x3F00) == Instruction::MOVF) {
+    executeMovf(instruction);
+    pc++;
+    }
+    else if ((instruction & 0x3F80) == Instruction::CLRF) {
+    executeClrf(instruction);
+    pc++;
+    }
+    else if ((instruction & 0x3F80) == Instruction::CLRW) {
+    executeClrw(instruction);
+    pc++;
     }
     else {
         std::cout << "Unbekannter oder noch nicht implementierter Befehl: 0x"
@@ -166,6 +213,6 @@ void CPU::printState() const {
               << "\nW  = 0x"
               << std::setw(2) << (wRegister & 0xFF)
               << "\nSTATUS = 0x"
-              << std::setw(2) << (statusRegister & 0xFF)
+              << std::setw(2) << (dataMemory.read(0x03) & 0xFF)
               << std::endl;
 }

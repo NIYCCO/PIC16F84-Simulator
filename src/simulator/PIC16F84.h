@@ -2,6 +2,7 @@
 
 #include "components/CPU.h"
 #include "components/ProgramMemory.h"
+#include "components/DataMemory.h"    
 
 class PIC16F84 {
     public:
@@ -18,11 +19,12 @@ class PIC16F84 {
         int getInstructionRegister() const;
         int getWRegister() const;
         int getStatusRegister() const;
+        int getDataMemory(int address) const;   
 
         int getLineForAddress(int address) const;
 
     private:
         ProgramMemory programMemory;
+        DataMemory dataMemory;      
         CPU cpu;
-
 };
