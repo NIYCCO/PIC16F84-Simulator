@@ -4,8 +4,8 @@
 
 #include "instructions.h"
 
-CPU::CPU(const ProgramMemory& pm, DataMemory& dm) 
-    : programMemory(pm), dataMemory(dm) {
+CPU::CPU(const ProgramMemory& pm, DataMemory& dm)
+    : programMemory(pm), dataMemory(dm), stack() {
     reset();
 }
 
@@ -13,7 +13,8 @@ void CPU::reset() {
     pc = 0;
     instructionRegister = 0;
     wRegister = 0;
-    dataMemory.write(0x03, 0);   // STATUS auf 0 zurücksetzen
+    dataMemory.write(0x03, 0);
+    stack.reset();   
 }
 
 int CPU::fetch() {
@@ -320,6 +321,29 @@ void CPU::executeBtfss(int instruction) {
     if (((value >> bit) & 0x01) == 1) pc++;  // extra skip wenn Bit gesetzt
 }
 
+void CPU::executeCall(int instruction) {
+    int target = instruction & 0x07FF;
+    stack.push(pc + 1);  // Rückkehradresse auf Stack
+    pc = target % 1024;
+}
+
+void CPU::executeReturn(int instruction) {
+    pc = stack.pop();
+}
+
+void CPU::executeRetlw(int instruction) {
+    int literal = instruction & 0x00FF;
+    wRegister = literal & 0xFF;
+    pc = stack.pop();
+}
+
+void CPU::executeRetfie(int instruction) {
+    pc = stack.pop();
+    // GIE-Bit im INTCON-Register setzen (Adresse 0x0B, Bit 7)
+    int intcon = dataMemory.read(0x0B);
+    dataMemory.write(0x0B, intcon | 0x80);
+}
+
 void CPU::decodeAndExecute(int instruction) {
     if ((instruction & 0x3F00) == Instruction::MOVLW) {
         executeMovlw(instruction);
@@ -431,6 +455,18 @@ void CPU::decodeAndExecute(int instruction) {
     else if ((instruction & 0x3C00) == Instruction::BTFSS) {
         executeBtfss(instruction);
         pc++;
+    }
+    else if ((instruction & 0x3800) == Instruction::CALL) {
+    executeCall(instruction);
+    }
+    else if (instruction == Instruction::RETURN) {
+        executeReturn(instruction);
+    }
+    else if ((instruction & 0x3F00) == Instruction::RETLW) {
+        executeRetlw(instruction);
+    }
+    else if (instruction == Instruction::RETFIE) {
+        executeRetfie(instruction);
     }
     else {
         std::cout << "Unbekannter oder noch nicht implementierter Befehl: 0x"

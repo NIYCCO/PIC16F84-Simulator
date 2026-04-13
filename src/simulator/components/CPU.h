@@ -1,7 +1,8 @@
 #pragma once
 
 #include "ProgramMemory.h"
-#include "DataMemory.h"          
+#include "DataMemory.h"
+#include "Stack.h"   
 
 class CPU {
 private:
@@ -11,6 +12,8 @@ private:
     int pc;
     int instructionRegister;
     int wRegister;
+
+    Stack stack;  
 
     
 
@@ -50,6 +53,10 @@ private:
     void executeBsf(int instruction);
     void executeBtfsc(int instruction);
     void executeBtfss(int instruction);
+    void executeCall(int instruction);
+    void executeReturn(int instruction);
+    void executeRetlw(int instruction);
+    void executeRetfie(int instruction);
 
     void decodeAndExecute(int instruction);
 
