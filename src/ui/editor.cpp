@@ -9,7 +9,7 @@ static const char* defaultText =
 "// Welcome to the PIC16F84 Simulator!\n"
 "// Open a .lst file\n";
 
-Editor::Editor() {
+Editor::Editor(PIC16F84 &pic) : pic(&pic) {
     editor.SetText(defaultText);
     editor.SetReadOnlyEnabled(true);
     editor.SetShowScrollbarMiniMapEnabled(false);
@@ -82,6 +82,11 @@ void Editor::render() {
     if (ImGui::Button("Go", ImVec2(80, 0))) {
         std::cout << "Go button clicked!" << std::endl;
         goRequested = true;
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Reset", ImVec2(80, 0))) {
+        std::cout << "Reset button clicked!" << std::endl;
+        pic->reset();
     }
 
     const char* maxText = "Laufzeit: 00.000,00 \xC2\xB5s";

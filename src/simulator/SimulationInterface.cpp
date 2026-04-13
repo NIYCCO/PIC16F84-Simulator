@@ -12,7 +12,7 @@
 
 #include "imfilebrowser.h"
 
-SimulationInterface::SimulationInterface() : window(nullptr), isFirstLayout(true), showAboutPopup(false) {
+SimulationInterface::SimulationInterface() : window(nullptr), isFirstLayout(true), showAboutPopup(false), editor(pic) {
     fileDialog = new ImGui::FileBrowser();
     fileDialog->SetTitle("Open LST File");
     fileDialog->SetTypeFilters({ ".lst", ".LST" });
