@@ -290,7 +290,16 @@ void SimulationInterface::renderPanels() {
 
     ImGui::SeparatorText("Stack");
     ImGui::BeginChild("Stack", ImVec2(0.0f, 0.0f), ImGuiChildFlags_Borders | ImGuiChildFlags_AutoResizeY);
-        ImGui::Text("Hier könnte der Stack angezeigt werden");
+        if (ImGui::BeginTable("tableStack", 2, ImGuiTableFlags_SizingStretchSame)) {
+            for (int i = 0; i < 8; ++i) {
+                ImGui::TableNextRow();
+                ImGui::TableNextColumn();
+                ImGui::Text("0x%02X", i);
+                ImGui::TableNextColumn();
+                ImGui::Text("0x0000");
+            }
+            ImGui::EndTable();
+        }
     ImGui::EndChild();
     ImGui::SeparatorEx(ImGuiSeparatorFlags_Horizontal, 3.0f);
 
