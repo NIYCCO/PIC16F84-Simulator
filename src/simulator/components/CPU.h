@@ -81,4 +81,6 @@ public:
     bool getCarryFlag() const { return getStatusBit(STATUS_C); }
 
     void setWRegister(int value) { wRegister = value & 0xFF; }
+
+    uint8_t* getDataMemory() const { return dataMemory.getMemory(); }
 };

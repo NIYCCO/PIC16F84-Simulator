@@ -426,7 +426,8 @@ void SimulationInterface::renderPanels() {
         isRunning = !isRunning;
     }
 
-    static uint8_t data[256];
+    static uint8_t data[256] = {0};
+    std::copy(pic.getDataMemory(), pic.getDataMemory() + 256, data);
     size_t data_size = sizeof(data);
     ImGuiWindowFlags mem_edit_flags = ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse;
     ImGui::Begin("Memory Editor", nullptr, mem_edit_flags);
@@ -435,7 +436,7 @@ void SimulationInterface::renderPanels() {
     mem_edit.OptAddrDigitsCount = 2;
     mem_edit.OptUpperCaseHex = true;
     mem_edit.OptShowOptions = false;
-    mem_edit.DrawContents(data, data_size);
+    mem_edit.DrawContents(pic.getDataMemory(), 256);
     ImGui::End();
 
     if (isRunning) {

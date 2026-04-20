@@ -25,6 +25,8 @@ class PIC16F84 {
 
         int getLineForAddress(int address) const;
 
+        uint8_t* getDataMemory() const { return cpu.getDataMemory(); }
+
     private:
         ProgramMemory programMemory;
         DataMemory dataMemory;      
