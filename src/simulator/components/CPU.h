@@ -86,6 +86,9 @@ public:
     int getWRegister() const { return wRegister & 0xFF; }
     int getStatusRegister() const { return dataMemory.read(0x03); }  // NEU
 
+    int getStackPointer() const { return stack.getStackPointer(); }
+    int getStackValue(int index) const { return stack.getStackValue(index); }
+
     bool getZeroFlag() const { return getStatusBit(STATUS_Z); }
     bool getDigitCarryFlag() const { return getStatusBit(STATUS_DC); }
     bool getCarryFlag() const { return getStatusBit(STATUS_C); }

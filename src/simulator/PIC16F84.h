@@ -19,7 +19,10 @@ class PIC16F84 {
         int getInstructionRegister() const;
         int getWRegister() const;
         int getStatusRegister() const;
-        int getDataMemory(int address) const;   
+        int getDataMemory(int address) const;
+
+        int getStackPointer() const { return cpu.getStackPointer(); }
+        int getStackValue(int index) const { return cpu.getStackValue(index); }
 
         void setWRegister(int value) { cpu.setWRegister(value); }
 

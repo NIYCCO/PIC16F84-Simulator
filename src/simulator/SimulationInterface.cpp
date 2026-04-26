@@ -290,7 +290,7 @@ void SimulationInterface::renderPanels() {
             ImGui::TableNextColumn();
             ImGui::Text("Stackpointer");
             ImGui::TableNextColumn();
-            ImGui::Text("0x00");
+            ImGui::Text("0x%02X", pic.getStackPointer());
             ImGui::TableNextRow();
             ImGui::TableNextColumn();
             ImGui::Text("VT");
@@ -315,12 +315,13 @@ void SimulationInterface::renderPanels() {
     ImGui::SeparatorText("Stack");
     ImGui::BeginChild("Stack", ImVec2(0.0f, 0.0f), ImGuiChildFlags_Borders | ImGuiChildFlags_AutoResizeY);
         if (ImGui::BeginTable("tableStack", 2, ImGuiTableFlags_SizingStretchSame)) {
+            const int stackPointer = pic.getStackPointer();
             for (int i = 0; i < 8; ++i) {
                 ImGui::TableNextRow();
                 ImGui::TableNextColumn();
                 ImGui::Text("0x%02X", i);
                 ImGui::TableNextColumn();
-                ImGui::Text("0x0000");
+                ImGui::Text("0x%04X", pic.getStackValue(i) & 0x1FFF);
             }
             ImGui::EndTable();
         }
