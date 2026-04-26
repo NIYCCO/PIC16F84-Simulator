@@ -12,6 +12,24 @@
 
 #include "imfilebrowser.h"
 
+#define TMR0    0x01
+#define PCL     0x02
+#define STATUS  0x03
+#define FSR     0x04
+#define PORTA   0x05
+#define PORTB   0x06
+#define EEDATA  0x08
+#define EEADR   0x09
+#define PCLATH  0x0A
+#define INTCON  0x0B
+
+// Bank 1
+#define OPTION_REG 0x81
+#define TRISA      0x85
+#define TRISB      0x86
+#define EECON1     0x88
+#define EECON2     0x89
+
 SimulationInterface::SimulationInterface() : window(nullptr), isFirstLayout(true), showAboutPopup(false), editor(pic) {
     fileDialog = new ImGui::FileBrowser();
     fileDialog->SetTitle("Open LST File");
@@ -237,22 +255,22 @@ void SimulationInterface::renderPanels() {
             ImGui::TableNextColumn();
             ImGui::Text("FSR");
             ImGui::TableNextColumn();
-            ImGui::Text("0x00");
+            ImGui::Text("0x%02X", (pic.getDataMemory(FSR) & 0xFF));
             ImGui::TableNextRow();
             ImGui::TableNextColumn();
             ImGui::Text("PCL");
             ImGui::TableNextColumn();
-            ImGui::Text("0x00");
+            ImGui::Text("0x%02X", (pic.getPC() & 0xFF));
             ImGui::TableNextRow();
             ImGui::TableNextColumn();
             ImGui::Text("PCLATH");
             ImGui::TableNextColumn();
-            ImGui::Text("0x00");
+            ImGui::Text("0x%02X", (pic.getDataMemory(PCLATH) & 0x1F));
             ImGui::TableNextRow();
             ImGui::TableNextColumn();
             ImGui::Text("Status");
             ImGui::TableNextColumn();
-            ImGui::Text("0x00");
+            ImGui::Text("0x%02X", (pic.getStatusRegister() & 0xFF));
 
             ImGui::EndTable();
         }
@@ -267,7 +285,7 @@ void SimulationInterface::renderPanels() {
             ImGui::TableNextColumn();
             ImGui::Text("PC");
             ImGui::TableNextColumn();
-            ImGui::Text("0x%02X", pic.getPC());
+            ImGui::Text("0x%04X", pic.getPC() & 0x1FFF);
             ImGui::TableNextRow();
             ImGui::TableNextColumn();
             ImGui::Text("Stackpointer");
@@ -312,7 +330,7 @@ void SimulationInterface::renderPanels() {
     ImGui::BeginChild("GPR", ImVec2(0.0f, 0.0f), ImGuiChildFlags_Borders | ImGuiChildFlags_AutoResizeY);
         if (ImGui::BeginTable("tableGPR", 8, ImGuiTableFlags_SizingStretchSame)) {
             ImGui::TableSetupColumn("IRP");
-            ImGui::TableSetupColumn("RP");
+            ImGui::TableSetupColumn("RP1");
             ImGui::TableSetupColumn("RP0");
             ImGui::TableSetupColumn("TO");
             ImGui::TableSetupColumn("PD");
@@ -323,25 +341,27 @@ void SimulationInterface::renderPanels() {
 
             ImGui::TableNextRow();
             ImGui::TableNextColumn();
-            ImGui::Text("0");
+            ImGui::Text("%d", getBit((pic.getStatusRegister() & 0xFF), 7));
             ImGui::TableNextColumn();
-            ImGui::Text("0");
+            ImGui::Text("%d", getBit((pic.getStatusRegister() & 0xFF), 6));
             ImGui::TableNextColumn();
-            ImGui::Text("0");
+            ImGui::Text("%d", getBit((pic.getStatusRegister() & 0xFF), 5));
             ImGui::TableNextColumn();
-            ImGui::Text("0");
+            ImGui::Text("%d", getBit((pic.getStatusRegister() & 0xFF), 4));
             ImGui::TableNextColumn();
-            ImGui::Text("0");
+            ImGui::Text("%d", getBit((pic.getStatusRegister() & 0xFF), 3));
             ImGui::TableNextColumn();
-            ImGui::Text("0");
+            ImGui::Text("%d", getBit((pic.getStatusRegister() & 0xFF), 2));
             ImGui::TableNextColumn();
-            ImGui::Text("0");
+            ImGui::Text("%d", getBit((pic.getStatusRegister() & 0xFF), 1));
             ImGui::TableNextColumn();
-            ImGui::Text("0");
+            ImGui::Text("%d", getBit((pic.getStatusRegister() & 0xFF), 0));
 
             ImGui::EndTable();
         }
     ImGui::EndChild();
+
+    ImGui::Text("OPTION: 0x%02X", (pic.getDataMemory(OPTION_REG) & 0xFF));
 
     ImGui::BeginChild("Option", ImVec2(0.0f, 0.0f), ImGuiChildFlags_Borders | ImGuiChildFlags_AutoResizeY);
         if (ImGui::BeginTable("tableOption", 8, ImGuiTableFlags_SizingStretchSame)) {
@@ -357,25 +377,27 @@ void SimulationInterface::renderPanels() {
 
             ImGui::TableNextRow();
             ImGui::TableNextColumn();
-            ImGui::Text("0");
+            ImGui::Text("%d", getBit((pic.getDataMemory(OPTION_REG) & 0xFF), 7));
             ImGui::TableNextColumn();
-            ImGui::Text("0");
+            ImGui::Text("%d", getBit((pic.getDataMemory(OPTION_REG) & 0xFF), 6));
             ImGui::TableNextColumn();
-            ImGui::Text("0");
+            ImGui::Text("%d", getBit((pic.getDataMemory(OPTION_REG) & 0xFF), 5));
             ImGui::TableNextColumn();
-            ImGui::Text("0");
+            ImGui::Text("%d", getBit((pic.getDataMemory(OPTION_REG) & 0xFF), 4));
             ImGui::TableNextColumn();
-            ImGui::Text("0");
+            ImGui::Text("%d", getBit((pic.getDataMemory(OPTION_REG) & 0xFF), 3));
             ImGui::TableNextColumn();
-            ImGui::Text("0");
+            ImGui::Text("%d", getBit((pic.getDataMemory(OPTION_REG) & 0xFF), 2));
             ImGui::TableNextColumn();
-            ImGui::Text("0");
+            ImGui::Text("%d", getBit((pic.getDataMemory(OPTION_REG) & 0xFF), 1));
             ImGui::TableNextColumn();
-            ImGui::Text("0");
+            ImGui::Text("%d", getBit((pic.getDataMemory(OPTION_REG) & 0xFF), 0));
 
             ImGui::EndTable();
         }
     ImGui::EndChild();
+
+    ImGui::Text("INTCON: 0x%02X", (pic.getDataMemory(INTCON) & 0xFF));
 
     ImGui::BeginChild("INTCON", ImVec2(0.0f, 0.0f), ImGuiChildFlags_Borders | ImGuiChildFlags_AutoResizeY);
         if (ImGui::BeginTable("tableINTCON", 8, ImGuiTableFlags_SizingStretchSame)) {
@@ -391,21 +413,21 @@ void SimulationInterface::renderPanels() {
 
             ImGui::TableNextRow();
             ImGui::TableNextColumn();
-            ImGui::Text("0");
+            ImGui::Text("%d", getBit((pic.getDataMemory(INTCON) & 0xFF), 7));
             ImGui::TableNextColumn();
-            ImGui::Text("0");
+            ImGui::Text("%d", getBit((pic.getDataMemory(INTCON) & 0xFF), 6));
             ImGui::TableNextColumn();
-            ImGui::Text("0");
+            ImGui::Text("%d", getBit((pic.getDataMemory(INTCON) & 0xFF), 5));
             ImGui::TableNextColumn();
-            ImGui::Text("0");
+            ImGui::Text("%d", getBit((pic.getDataMemory(INTCON) & 0xFF), 4));
             ImGui::TableNextColumn();
-            ImGui::Text("0");
+            ImGui::Text("%d", getBit((pic.getDataMemory(INTCON) & 0xFF), 3));
             ImGui::TableNextColumn();
-            ImGui::Text("0");
+            ImGui::Text("%d", getBit((pic.getDataMemory(INTCON) & 0xFF), 2));
             ImGui::TableNextColumn();
-            ImGui::Text("0");
+            ImGui::Text("%d", getBit((pic.getDataMemory(INTCON) & 0xFF), 1));
             ImGui::TableNextColumn();
-            ImGui::Text("0");
+            ImGui::Text("%d", getBit((pic.getDataMemory(INTCON) & 0xFF), 0));
 
             ImGui::EndTable();
         }
@@ -426,9 +448,6 @@ void SimulationInterface::renderPanels() {
         isRunning = !isRunning;
     }
 
-    static uint8_t data[256] = {0};
-    std::copy(pic.getDataMemory(), pic.getDataMemory() + 256, data);
-    size_t data_size = sizeof(data);
     ImGuiWindowFlags mem_edit_flags = ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse;
     ImGui::Begin("Memory Editor", nullptr, mem_edit_flags);
     mem_edit.Cols = 8;

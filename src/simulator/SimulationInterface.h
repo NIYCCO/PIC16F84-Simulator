@@ -45,4 +45,8 @@ class SimulationInterface {
         void handleFileDialog();
 
         std::string wregToText(int wreg);
+
+        int getBit(int value, int bit) const {
+            return (value >> bit) & 0x01;
+        }
 };
