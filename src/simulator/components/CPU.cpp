@@ -273,25 +273,6 @@ void CPU::executeSubwf(int instruction) {
     else writeFileRegister(f, result8);
 }
 
-
-void CPU::executeMovf(int instruction) {
-    int f = instruction & 0x7F;
-    int d = (instruction >> 7) & 0x01;
-    int value = readFileRegister(f);
-
-    updateZeroFlag(value);
-
-    if (d == 0) {
-        wRegister = value & 0xFF;
-    } else {
-        int destination = resolveWriteAddress(f);
-        writeFileRegister(f, value);
-        if (destination == 0x02) {
-            refreshPcFromPcl();
-        }
-    }
-}
-
 void CPU::executeComf(int instruction) {
     int f = instruction & 0x7F;
     int d = (instruction >> 7) & 0x01;
