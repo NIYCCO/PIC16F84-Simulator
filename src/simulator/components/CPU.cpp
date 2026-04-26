@@ -40,6 +40,93 @@ void CPU::updateZeroFlag(int value) {
     setStatusBit(STATUS_Z, (value & 0xFF) == 0);
 }
 
+int CPU::getRP0() const {
+    return (dataMemory.read(0x03) >> 5) & 0x01;
+}
+
+int CPU::normalizeFileAddress(int rawAddress) const {
+    int a = rawAddress & 0xFF;
+
+    // SFR-Spiegelungen Bank1 -> Bank0
+    switch (a) {
+        case 0x80: return 0x00; // INDF
+        case 0x81: return 0x01; // TMR0
+        case 0x82: return 0x02; // PCL
+        case 0x83: return 0x03; // STATUS
+        case 0x84: return 0x04; // FSR
+        case 0x8A: return 0x0A; // PCLATH
+        case 0x8B: return 0x0B; // INTCON
+        default: break;
+    }
+
+    // GPR-Spiegelung 0x8C..0xCF -> 0x0C..0x4F
+    if (a >= 0x8C && a <= 0xCF) return a - 0x80;
+
+    return a;
+}
+
+int CPU::resolveDirectAddress(int f) const {
+    int bankOffset = getRP0() ? 0x80 : 0x00;
+    int raw = bankOffset | (f & 0x7F);
+    return normalizeFileAddress(raw);
+}
+
+int CPU::resolveWriteAddress(int f) const {
+    int direct = resolveDirectAddress(f);
+
+    if (direct != 0x00) {
+        return direct;
+    }
+
+    // indirekt über INDF -> FSR
+    int fsr = dataMemory.read(0x04) & 0xFF;
+    return normalizeFileAddress(fsr);
+}
+
+int CPU::readFileRegister(int f) const {
+    int direct = resolveDirectAddress(f);
+
+    if (direct != 0x00) {
+        return dataMemory.read(direct);
+    }
+
+    // INDF: indirekter Zugriff über FSR
+    int fsr = dataMemory.read(0x04) & 0xFF;
+    int indirect = normalizeFileAddress(fsr);
+
+    // INDF auf INDF liefert 0
+    if (indirect == 0x00) return 0;
+
+    return dataMemory.read(indirect);
+}
+
+void CPU::writeFileRegister(int f, int value) {
+    int v = value & 0xFF;
+    int direct = resolveDirectAddress(f);
+
+    if (direct != 0x00) {
+        dataMemory.write(direct, v);
+        return;
+    }
+
+    // INDF: indirekter Zugriff über FSR
+    int fsr = dataMemory.read(0x04) & 0xFF;
+    int indirect = normalizeFileAddress(fsr);
+
+    // INDF auf INDF: no-op
+    if (indirect == 0x00) return;
+
+    dataMemory.write(indirect, v);
+}
+
+void CPU::refreshPcFromPcl() {
+    int pcl = dataMemory.read(0x02) & 0xFF;
+    int pclath = dataMemory.read(0x0A) & 0x1F;
+    pc = ((pclath << 8) | pcl) & 0x03FF;
+}
+
+
+
 void CPU::executeMovlw(int instruction) {
     int literal = instruction & 0x00FF;
     wRegister = literal & 0xFF;
@@ -101,32 +188,42 @@ void CPU::executeGoto(int instruction) {
 }
 
 void CPU::executeMovwf(int instruction) {
-    int address = instruction & 0x7F;
-    dataMemory.write(address, wRegister & 0xFF);
+    int f = instruction & 0x7F;
+    int destination = resolveWriteAddress(f);
 
-    if (address == 0x02) {
-        pc = (dataMemory.read(0x0A) << 8) | (wRegister & 0xFF);
-        pc %= 1024;
+    writeFileRegister(f, wRegister & 0xFF);
+
+    if (destination == 0x02) {
+        refreshPcFromPcl();
     }
 }
+
 
 void CPU::executeMovf(int instruction) {
-    int address = instruction & 0x7F;
+    int f = instruction & 0x7F;
     int d = (instruction >> 7) & 0x01;
-    int value = dataMemory.read(address);
+    int value = readFileRegister(f);
+
     updateZeroFlag(value);
+
     if (d == 0) {
-        wRegister = value;
+        wRegister = value & 0xFF;
     } else {
-        dataMemory.write(address, value);
+        int destination = resolveWriteAddress(f);
+        writeFileRegister(f, value);
+        if (destination == 0x02) {
+            refreshPcFromPcl();
+        }
     }
 }
 
+
 void CPU::executeClrf(int instruction) {
-    int address = instruction & 0x7F;
-    dataMemory.write(address, 0);
+    int f = instruction & 0x7F;
+    writeFileRegister(f, 0);
     setStatusBit(STATUS_Z, true);
 }
+
 
 void CPU::executeClrw(int instruction) {
     wRegister = 0;
@@ -134,148 +231,233 @@ void CPU::executeClrw(int instruction) {
 }
 
 void CPU::executeAddwf(int instruction) {
-    int address = instruction & 0x7F;
+    int f = instruction & 0x7F;
     int d = (instruction >> 7) & 0x01;
-    int f = dataMemory.read(address);
+    int fileVal = readFileRegister(f);
     int w = wRegister & 0xFF;
 
-    int result = f + w;
+    int result = fileVal + w;
     int result8 = result & 0xFF;
 
     updateZeroFlag(result8);
     setStatusBit(STATUS_C, result > 0xFF);
-    setStatusBit(STATUS_DC, ((f & 0x0F) + (w & 0x0F)) > 0x0F);
+    setStatusBit(STATUS_DC, ((fileVal & 0x0F) + (w & 0x0F)) > 0x0F);
 
-    if (d == 0) wRegister = result8;
-    else dataMemory.write(address, result8);
+    if (d == 0) {
+        wRegister = result8;
+    } else {
+        int destination = resolveWriteAddress(f);
+        writeFileRegister(f, result8);
 
-    if (d == 1 && address == 0x02) {
-        pc = (dataMemory.read(0x0A) << 8) | result8;
-        pc %= 1024;
+        if (destination == 0x02) {
+            refreshPcFromPcl();
+        }
     }
 }
 
+
 void CPU::executeSubwf(int instruction) {
-    int address = instruction & 0x7F;
+    int f = instruction & 0x7F;
     int d = (instruction >> 7) & 0x01;
-    int f = dataMemory.read(address);
+    int fileVal = readFileRegister(f);
     int w = wRegister & 0xFF;
 
-    int result = f - w;
+    int result = fileVal - w;
     int result8 = result & 0xFF;
 
     updateZeroFlag(result8);
-    // PIC-Sonderverhalten: kein Invertieren des Carry
-    setStatusBit(STATUS_C, f >= w);
-    setStatusBit(STATUS_DC, (f & 0x0F) >= (w & 0x0F));
+    setStatusBit(STATUS_C, fileVal >= w);
+    setStatusBit(STATUS_DC, (fileVal & 0x0F) >= (w & 0x0F));
 
     if (d == 0) wRegister = result8;
-    else dataMemory.write(address, result8);
+    else writeFileRegister(f, result8);
+}
+
+
+void CPU::executeMovf(int instruction) {
+    int f = instruction & 0x7F;
+    int d = (instruction >> 7) & 0x01;
+    int value = readFileRegister(f);
+
+    updateZeroFlag(value);
+
+    if (d == 0) {
+        wRegister = value & 0xFF;
+    } else {
+        int destination = resolveWriteAddress(f);
+        writeFileRegister(f, value);
+        if (destination == 0x02) {
+            refreshPcFromPcl();
+        }
+    }
 }
 
 void CPU::executeComf(int instruction) {
-    int address = instruction & 0x7F;
+    int f = instruction & 0x7F;
     int d = (instruction >> 7) & 0x01;
-    int result = (~dataMemory.read(address)) & 0xFF;
+    int result = (~readFileRegister(f)) & 0xFF;
 
     updateZeroFlag(result);
 
-    if (d == 0) wRegister = result;
-    else dataMemory.write(address, result);
+    if (d == 0) {
+        wRegister = result;
+    } else {
+        int destination = resolveWriteAddress(f);
+        writeFileRegister(f, result);
+        if (destination == 0x02) {
+            refreshPcFromPcl();
+        }
+    }
 }
 
 void CPU::executeAndwf(int instruction) {
-    int address = instruction & 0x7F;
+    int f = instruction & 0x7F;
     int d = (instruction >> 7) & 0x01;
-    int result = (dataMemory.read(address) & (wRegister & 0xFF)) & 0xFF;
+    int result = (readFileRegister(f) & (wRegister & 0xFF)) & 0xFF;
 
     updateZeroFlag(result);
 
-    if (d == 0) wRegister = result;
-    else dataMemory.write(address, result);
+    if (d == 0) {
+        wRegister = result;
+    } else {
+        int destination = resolveWriteAddress(f);
+        writeFileRegister(f, result);
+        if (destination == 0x02) {
+            refreshPcFromPcl();
+        }
+    }
 }
 
+
 void CPU::executeIorwf(int instruction) {
-    int address = instruction & 0x7F;
+    int f = instruction & 0x7F;
     int d = (instruction >> 7) & 0x01;
-    int result = (dataMemory.read(address) | (wRegister & 0xFF)) & 0xFF;
+    int result = (readFileRegister(f) | (wRegister & 0xFF)) & 0xFF;
 
     updateZeroFlag(result);
 
-    if (d == 0) wRegister = result;
-    else dataMemory.write(address, result);
+    if (d == 0) {
+        wRegister = result;
+    } else {
+        int destination = resolveWriteAddress(f);
+        writeFileRegister(f, result);
+        if (destination == 0x02) {
+            refreshPcFromPcl();
+        }
+    }
 }
 
 void CPU::executeXorwf(int instruction) {
-    int address = instruction & 0x7F;
+    int f = instruction & 0x7F;
     int d = (instruction >> 7) & 0x01;
-    int result = (dataMemory.read(address) ^ (wRegister & 0xFF)) & 0xFF;
+    int result = (readFileRegister(f) ^ (wRegister & 0xFF)) & 0xFF;
 
     updateZeroFlag(result);
 
-    if (d == 0) wRegister = result;
-    else dataMemory.write(address, result);
+    if (d == 0) {
+        wRegister = result;
+    } else {
+        int destination = resolveWriteAddress(f);
+        writeFileRegister(f, result);
+        if (destination == 0x02) {
+            refreshPcFromPcl();
+        }
+    }
 }
 
 void CPU::executeSwapf(int instruction) {
-    int address = instruction & 0x7F;
+    int f = instruction & 0x7F;
     int d = (instruction >> 7) & 0x01;
-    int value = dataMemory.read(address);
+    int value = readFileRegister(f);
     int result = ((value & 0x0F) << 4) | ((value & 0xF0) >> 4);
 
-
-    if (d == 0) wRegister = result;
-    else dataMemory.write(address, result);
+    if (d == 0) {
+        wRegister = result;
+    } else {
+        int destination = resolveWriteAddress(f);
+        writeFileRegister(f, result);
+        if (destination == 0x02) {
+            refreshPcFromPcl();
+        }
+    }
 }
 
 void CPU::executeDecf(int instruction) {
-    int address = instruction & 0x7F;
+    int f = instruction & 0x7F;
     int d = (instruction >> 7) & 0x01;
-    int result = (dataMemory.read(address) - 1) & 0xFF;
+    int result = (readFileRegister(f) - 1) & 0xFF;
 
     updateZeroFlag(result);
 
-    if (d == 0) wRegister = result;
-    else dataMemory.write(address, result);
+    if (d == 0) {
+        wRegister = result;
+    } else {
+        int destination = resolveWriteAddress(f);
+        writeFileRegister(f, result);
+        if (destination == 0x02) {
+            refreshPcFromPcl();
+        }
+    }
 }
 
 void CPU::executeIncf(int instruction) {
-    int address = instruction & 0x7F;
+    int f = instruction & 0x7F;
     int d = (instruction >> 7) & 0x01;
-    int result = (dataMemory.read(address) + 1) & 0xFF;
+    int result = (readFileRegister(f) + 1) & 0xFF;
 
     updateZeroFlag(result);
 
-    if (d == 0) wRegister = result;
-    else dataMemory.write(address, result);
+    if (d == 0) {
+        wRegister = result;
+    } else {
+        int destination = resolveWriteAddress(f);
+        writeFileRegister(f, result);
+        if (destination == 0x02) {
+            refreshPcFromPcl();
+        }
+    }
 }
 
 void CPU::executeDecfsz(int instruction) {
-    int address = instruction & 0x7F;
+    int f = instruction & 0x7F;
     int d = (instruction >> 7) & 0x01;
-    int result = (dataMemory.read(address) - 1) & 0xFF;
+    int result = (readFileRegister(f) - 1) & 0xFF;
 
-    if (d == 0) wRegister = result;
-    else dataMemory.write(address, result);
+    if (d == 0) {
+        wRegister = result;
+    } else {
+        int destination = resolveWriteAddress(f);
+        writeFileRegister(f, result);
+        if (destination == 0x02) {
+            refreshPcFromPcl();
+        }
+    }
 
-    if (result == 0) pc++;  
+    if (result == 0) pc++;
 }
 
 void CPU::executeIncfsz(int instruction) {
-    int address = instruction & 0x7F;
+    int f = instruction & 0x7F;
     int d = (instruction >> 7) & 0x01;
-    int result = (dataMemory.read(address) + 1) & 0xFF;
+    int result = (readFileRegister(f) + 1) & 0xFF;
 
-    if (d == 0) wRegister = result;
-    else dataMemory.write(address, result);
+    if (d == 0) {
+        wRegister = result;
+    } else {
+        int destination = resolveWriteAddress(f);
+        writeFileRegister(f, result);
+        if (destination == 0x02) {
+            refreshPcFromPcl();
+        }
+    }
 
-    if (result == 0) pc++; 
+    if (result == 0) pc++;
 }
 
 void CPU::executeRlf(int instruction) {
-    int address = instruction & 0x7F;
+    int f = instruction & 0x7F;
     int d = (instruction >> 7) & 0x01;
-    int value = dataMemory.read(address);
+    int value = readFileRegister(f);
     int oldCarry = getStatusBit(STATUS_C) ? 1 : 0;
 
     int newCarry = (value >> 7) & 0x01;
@@ -283,14 +465,22 @@ void CPU::executeRlf(int instruction) {
 
     setStatusBit(STATUS_C, newCarry);
 
-    if (d == 0) wRegister = result;
-    else dataMemory.write(address, result);
+    if (d == 0) {
+        wRegister = result;
+    } else {
+        int destination = resolveWriteAddress(f);
+        writeFileRegister(f, result);
+        if (destination == 0x02) {
+            refreshPcFromPcl();
+        }
+    }
 }
 
+
 void CPU::executeRrf(int instruction) {
-    int address = instruction & 0x7F;
+    int f = instruction & 0x7F;
     int d = (instruction >> 7) & 0x01;
-    int value = dataMemory.read(address);
+    int value = readFileRegister(f);
     int oldCarry = getStatusBit(STATUS_C) ? 1 : 0;
 
     int newCarry = value & 0x01;
@@ -298,36 +488,44 @@ void CPU::executeRrf(int instruction) {
 
     setStatusBit(STATUS_C, newCarry);
 
-    if (d == 0) wRegister = result;
-    else dataMemory.write(address, result);
+    if (d == 0) {
+        wRegister = result;
+    } else {
+        int destination = resolveWriteAddress(f);
+        writeFileRegister(f, result);
+        if (destination == 0x02) {
+            refreshPcFromPcl();
+        }
+    }
 }
 
 void CPU::executeBcf(int instruction) {
-    int address = instruction & 0x7F;
+    int f = instruction & 0x7F;
     int bit = (instruction >> 7) & 0x07;
-    int value = dataMemory.read(address);
-    dataMemory.write(address, value & ~(1 << bit));
-}
+    int value = readFileRegister(f);
+    int destination = resolveWriteAddress(f);
 
-void CPU::executeBsf(int instruction) {
-    int address = instruction & 0x7F;
-    int bit = (instruction >> 7) & 0x07;
-    int value = dataMemory.read(address);
-    dataMemory.write(address, value | (1 << bit));
+    writeFileRegister(f, value & ~(1 << bit));
+
+    if (destination == 0x02) {
+        refreshPcFromPcl();
+    }
 }
 
 void CPU::executeBtfsc(int instruction) {
-    int address = instruction & 0x7F;
+    int f = instruction & 0x7F;
     int bit = (instruction >> 7) & 0x07;
-    int value = dataMemory.read(address);
-    if (((value >> bit) & 0x01) == 0) pc++; 
+    int value = readFileRegister(f);
+
+    if (((value >> bit) & 0x01) == 0) pc++;
 }
 
 void CPU::executeBtfss(int instruction) {
-    int address = instruction & 0x7F;
+    int f = instruction & 0x7F;
     int bit = (instruction >> 7) & 0x07;
-    int value = dataMemory.read(address);
-    if (((value >> bit) & 0x01) == 1) pc++; 
+    int value = readFileRegister(f);
+
+    if (((value >> bit) & 0x01) == 1) pc++;
 }
 
 void CPU::executeCall(int instruction) {

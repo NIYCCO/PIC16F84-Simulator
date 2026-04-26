@@ -63,6 +63,16 @@ private:
 
     void decodeAndExecute(int instruction);
 
+    int getRP0() const;
+    int normalizeFileAddress(int rawAddress) const;
+    int resolveDirectAddress(int f) const;
+    int resolveWriteAddress(int f) const;
+    int readFileRegister(int f) const;
+    void writeFileRegister(int f, int value);
+    void refreshPcFromPcl();
+
+
+
 public:
     CPU(const ProgramMemory& pm, DataMemory& dm);   
 
