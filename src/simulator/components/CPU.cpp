@@ -493,6 +493,20 @@ void CPU::executeBcf(int instruction) {
     }
 }
 
+void CPU::executeBsf(int instruction) {
+    int f = instruction & 0x7F;
+    int bit = (instruction >> 7) & 0x07;
+    int value = readFileRegister(f);
+    int destination = resolveWriteAddress(f);
+
+    writeFileRegister(f, value | (1 << bit));
+
+    if (destination == 0x02) {
+        refreshPcFromPcl();
+    }
+}
+
+
 void CPU::executeBtfsc(int instruction) {
     int f = instruction & 0x7F;
     int bit = (instruction >> 7) & 0x07;
