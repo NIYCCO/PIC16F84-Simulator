@@ -885,3 +885,19 @@ void CPU::printState() const {
               << std::setw(2) << (dataMemory.read(0x03) & 0xFF)
               << std::endl;
 }
+
+void CPU::setDataMemoryValue(int address, int value) {
+    int normalizedAddress = normalizeFileAddress(address);
+    int maskedValue = value & 0xFF;
+
+    dataMemory.write(normalizedAddress, maskedValue);
+
+    if (normalizedAddress == 0x01) {
+        timerPrescalerCounter = 0;
+        tmr0WrittenThisStep = true;
+    }
+
+    if (normalizedAddress == 0x02) {
+        refreshPcFromPcl();
+    }
+}

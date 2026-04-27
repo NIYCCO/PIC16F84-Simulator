@@ -26,6 +26,7 @@ class PIC16F84 {
         int getStackValue(int index) const { return cpu.getStackValue(index); }
 
         void setWRegister(int value) { cpu.setWRegister(value); }
+        void setDataMemory(int address, int value) { cpu.setDataMemoryValue(address, value); }
 
         int getLineForAddress(int address) const;
 

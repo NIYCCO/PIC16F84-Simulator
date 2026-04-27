@@ -204,6 +204,47 @@ void SimulationInterface::renderMenuBar() {
 }
 
 void SimulationInterface::renderPanels() {
+    auto renderEditableRegister = [this](const char* label, const char* id, uint8_t value, auto setter) {
+        ImGui::TableNextRow();
+        ImGui::TableNextColumn();
+        ImGui::Text("%s", label);
+        ImGui::TableNextColumn();
+
+        ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
+        uint8_t editedValue = value;
+        ImGui::InputScalar(id, ImGuiDataType_U8, &editedValue, nullptr, nullptr, "%02X", ImGuiInputTextFlags_CharsHexadecimal);
+        if (ImGui::IsItemDeactivatedAfterEdit()) {
+            setter(editedValue);
+        }
+        ImGui::PopStyleColor();
+    };
+    auto renderRegisterBitEditor = [this](int address, int bit, const char* id) {
+        uint8_t bitValue = static_cast<uint8_t>(getBit(pic.getDataMemory(address) & 0xFF, bit));
+        char label[2] = { static_cast<char>('0' + bitValue), '\0' };
+        char buttonId[64];
+        snprintf(buttonId, sizeof(buttonId), "##%s", id);
+
+        if (ImGui::Button(buttonId, ImVec2(24.0f, 0.0f))) {
+            bitValue = 1 - bitValue;
+            int registerValue = pic.getDataMemory(address) & 0xFF;
+            if (bitValue == 1) {
+                registerValue |= (1 << bit);
+            } else {
+                registerValue &= ~(1 << bit);
+            }
+            pic.setDataMemory(address, registerValue);
+        }
+
+        ImVec2 itemMin = ImGui::GetItemRectMin();
+        ImVec2 itemMax = ImGui::GetItemRectMax();
+        ImVec2 textSize = ImGui::CalcTextSize(label);
+        ImVec2 textPos(
+            itemMin.x + (itemMax.x - itemMin.x - textSize.x) * 0.5f,
+            itemMin.y + (itemMax.y - itemMin.y - textSize.y) * 0.5f
+        );
+        ImGui::GetWindowDrawList()->AddText(textPos, ImGui::GetColorU32(ImGuiCol_Text), label);
+    };
+
     ImGui::Begin("Properties", nullptr, ImGuiWindowFlags_NoMove);
     ImGui::Text("Details zum ausgewählten Objekt");
     if (ImGui::Button("TEST")) {
@@ -236,41 +277,21 @@ void SimulationInterface::renderPanels() {
     ImGui::SeparatorText("sichtbar");
     ImGui::BeginChild("sichtbar", ImVec2(0.0f, 0.0f), ImGuiChildFlags_Borders | ImGuiChildFlags_AutoResizeY);
         if (ImGui::BeginTable("tablesichtbar", 2, ImGuiTableFlags_SizingStretchSame)) {
-
-            ImGui::TableNextRow();
-            ImGui::TableNextColumn();
-            ImGui::Text("W-Reg");
-            ImGui::TableNextColumn();
-            ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
-            // Hier InputText (Für W-Reg)
-            uint8_t wRegVal = (uint8_t)pic.getWRegister();
-            ImGui::InputScalar("##wreg", ImGuiDataType_U8, &wRegVal, NULL, NULL, "%02X", ImGuiInputTextFlags_CharsHexadecimal);
-
-            // 3. Prüfen, ob die Eingabe abgeschlossen wurde
-            if (ImGui::IsItemDeactivatedAfterEdit()) {
-                pic.setWRegister(wRegVal);
-            }
-            ImGui::PopStyleColor();
-            ImGui::TableNextRow();
-            ImGui::TableNextColumn();
-            ImGui::Text("FSR");
-            ImGui::TableNextColumn();
-            ImGui::Text("0x%02X", (pic.getDataMemory(FSR) & 0xFF));
-            ImGui::TableNextRow();
-            ImGui::TableNextColumn();
-            ImGui::Text("PCL");
-            ImGui::TableNextColumn();
-            ImGui::Text("0x%02X", (pic.getPC() & 0xFF));
-            ImGui::TableNextRow();
-            ImGui::TableNextColumn();
-            ImGui::Text("PCLATH");
-            ImGui::TableNextColumn();
-            ImGui::Text("0x%02X", (pic.getDataMemory(PCLATH) & 0x1F));
-            ImGui::TableNextRow();
-            ImGui::TableNextColumn();
-            ImGui::Text("Status");
-            ImGui::TableNextColumn();
-            ImGui::Text("0x%02X", (pic.getStatusRegister() & 0xFF));
+            renderEditableRegister("W-Reg", "##wreg", static_cast<uint8_t>(pic.getWRegister()), [this](uint8_t value) {
+                pic.setWRegister(value);
+            });
+            renderEditableRegister("FSR", "##fsr", static_cast<uint8_t>(pic.getDataMemory(FSR)), [this](uint8_t value) {
+                pic.setDataMemory(FSR, value);
+            });
+            renderEditableRegister("PCL", "##pcl", static_cast<uint8_t>(pic.getPC() & 0xFF), [this](uint8_t value) {
+                pic.setDataMemory(PCL, value);
+            });
+            renderEditableRegister("PCLATH", "##pclath", static_cast<uint8_t>(pic.getDataMemory(PCLATH) & 0x1F), [this](uint8_t value) {
+                pic.setDataMemory(PCLATH, value & 0x1F);
+            });
+            renderEditableRegister("Status", "##status", static_cast<uint8_t>(pic.getStatusRegister()), [this](uint8_t value) {
+                pic.setDataMemory(STATUS, value);
+            });
 
             ImGui::EndTable();
         }
@@ -342,21 +363,21 @@ void SimulationInterface::renderPanels() {
 
             ImGui::TableNextRow();
             ImGui::TableNextColumn();
-            ImGui::Text("%d", getBit((pic.getStatusRegister() & 0xFF), 7));
+            renderRegisterBitEditor(STATUS, 7, "##status_bit7");
             ImGui::TableNextColumn();
-            ImGui::Text("%d", getBit((pic.getStatusRegister() & 0xFF), 6));
+            renderRegisterBitEditor(STATUS, 6, "##status_bit6");
             ImGui::TableNextColumn();
-            ImGui::Text("%d", getBit((pic.getStatusRegister() & 0xFF), 5));
+            renderRegisterBitEditor(STATUS, 5, "##status_bit5");
             ImGui::TableNextColumn();
-            ImGui::Text("%d", getBit((pic.getStatusRegister() & 0xFF), 4));
+            renderRegisterBitEditor(STATUS, 4, "##status_bit4");
             ImGui::TableNextColumn();
-            ImGui::Text("%d", getBit((pic.getStatusRegister() & 0xFF), 3));
+            renderRegisterBitEditor(STATUS, 3, "##status_bit3");
             ImGui::TableNextColumn();
-            ImGui::Text("%d", getBit((pic.getStatusRegister() & 0xFF), 2));
+            renderRegisterBitEditor(STATUS, 2, "##status_bit2");
             ImGui::TableNextColumn();
-            ImGui::Text("%d", getBit((pic.getStatusRegister() & 0xFF), 1));
+            renderRegisterBitEditor(STATUS, 1, "##status_bit1");
             ImGui::TableNextColumn();
-            ImGui::Text("%d", getBit((pic.getStatusRegister() & 0xFF), 0));
+            renderRegisterBitEditor(STATUS, 0, "##status_bit0");
 
             ImGui::EndTable();
         }
@@ -378,21 +399,21 @@ void SimulationInterface::renderPanels() {
 
             ImGui::TableNextRow();
             ImGui::TableNextColumn();
-            ImGui::Text("%d", getBit((pic.getDataMemory(OPTION_REG) & 0xFF), 7));
+            renderRegisterBitEditor(OPTION_REG, 7, "##option_bit7");
             ImGui::TableNextColumn();
-            ImGui::Text("%d", getBit((pic.getDataMemory(OPTION_REG) & 0xFF), 6));
+            renderRegisterBitEditor(OPTION_REG, 6, "##option_bit6");
             ImGui::TableNextColumn();
-            ImGui::Text("%d", getBit((pic.getDataMemory(OPTION_REG) & 0xFF), 5));
+            renderRegisterBitEditor(OPTION_REG, 5, "##option_bit5");
             ImGui::TableNextColumn();
-            ImGui::Text("%d", getBit((pic.getDataMemory(OPTION_REG) & 0xFF), 4));
+            renderRegisterBitEditor(OPTION_REG, 4, "##option_bit4");
             ImGui::TableNextColumn();
-            ImGui::Text("%d", getBit((pic.getDataMemory(OPTION_REG) & 0xFF), 3));
+            renderRegisterBitEditor(OPTION_REG, 3, "##option_bit3");
             ImGui::TableNextColumn();
-            ImGui::Text("%d", getBit((pic.getDataMemory(OPTION_REG) & 0xFF), 2));
+            renderRegisterBitEditor(OPTION_REG, 2, "##option_bit2");
             ImGui::TableNextColumn();
-            ImGui::Text("%d", getBit((pic.getDataMemory(OPTION_REG) & 0xFF), 1));
+            renderRegisterBitEditor(OPTION_REG, 1, "##option_bit1");
             ImGui::TableNextColumn();
-            ImGui::Text("%d", getBit((pic.getDataMemory(OPTION_REG) & 0xFF), 0));
+            renderRegisterBitEditor(OPTION_REG, 0, "##option_bit0");
 
             ImGui::EndTable();
         }
@@ -414,21 +435,21 @@ void SimulationInterface::renderPanels() {
 
             ImGui::TableNextRow();
             ImGui::TableNextColumn();
-            ImGui::Text("%d", getBit((pic.getDataMemory(INTCON) & 0xFF), 7));
+            renderRegisterBitEditor(INTCON, 7, "##intcon_bit7");
             ImGui::TableNextColumn();
-            ImGui::Text("%d", getBit((pic.getDataMemory(INTCON) & 0xFF), 6));
+            renderRegisterBitEditor(INTCON, 6, "##intcon_bit6");
             ImGui::TableNextColumn();
-            ImGui::Text("%d", getBit((pic.getDataMemory(INTCON) & 0xFF), 5));
+            renderRegisterBitEditor(INTCON, 5, "##intcon_bit5");
             ImGui::TableNextColumn();
-            ImGui::Text("%d", getBit((pic.getDataMemory(INTCON) & 0xFF), 4));
+            renderRegisterBitEditor(INTCON, 4, "##intcon_bit4");
             ImGui::TableNextColumn();
-            ImGui::Text("%d", getBit((pic.getDataMemory(INTCON) & 0xFF), 3));
+            renderRegisterBitEditor(INTCON, 3, "##intcon_bit3");
             ImGui::TableNextColumn();
-            ImGui::Text("%d", getBit((pic.getDataMemory(INTCON) & 0xFF), 2));
+            renderRegisterBitEditor(INTCON, 2, "##intcon_bit2");
             ImGui::TableNextColumn();
-            ImGui::Text("%d", getBit((pic.getDataMemory(INTCON) & 0xFF), 1));
+            renderRegisterBitEditor(INTCON, 1, "##intcon_bit1");
             ImGui::TableNextColumn();
-            ImGui::Text("%d", getBit((pic.getDataMemory(INTCON) & 0xFF), 0));
+            renderRegisterBitEditor(INTCON, 0, "##intcon_bit0");
 
             ImGui::EndTable();
         }
