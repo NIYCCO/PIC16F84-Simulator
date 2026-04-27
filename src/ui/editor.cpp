@@ -41,6 +41,8 @@ Editor::Editor(PIC16F84 &pic) : pic(&pic) {
         }
 
     });
+
+    quartzFrequencyMHz = this->pic->getQuartzFrequencyMHz();
 }
 
 void Editor::openFile(const std::string &path) {
@@ -118,20 +120,13 @@ void Editor::render() {
         }
     }
 
-    const uint64_t executedCycles = pic->getExecutedCycles();
-    const double instructionCycleUs = 4.0 / quartzFrequencyMHz;
-    const double runtimeUs = static_cast<double>(executedCycles) * instructionCycleUs;
+    pic->setQuartzFrequencyMHz(quartzFrequencyMHz);
+    const double runtimeUs = pic->getExecutedTimeUs();
 
     char laufzeitText[96];
-    if (runtimeUs >= 1000000.0) {
-        snprintf(laufzeitText, sizeof(laufzeitText), "Laufzeit: %.3f s", runtimeUs / 1000000.0);
-    } else if (runtimeUs >= 1000.0) {
-        snprintf(laufzeitText, sizeof(laufzeitText), "Laufzeit: %.3f ms", runtimeUs / 1000.0);
-    } else {
-        snprintf(laufzeitText, sizeof(laufzeitText), "Laufzeit: %.3f \xC2\xB5s", runtimeUs);
-    }
+    snprintf(laufzeitText, sizeof(laufzeitText), "Laufzeit: %.3f \xC2\xB5s", runtimeUs);
 
-    const char* maxText = "Laufzeit: 0000000.000 ms";
+    const char* maxText = "Laufzeit: 0000000000.000 \xC2\xB5s";
     ImVec2 maxTextSize = ImGui::CalcTextSize(maxText);
     float fixedButtonWidth = maxTextSize.x + ImGui::GetStyle().FramePadding.x * 2.0f;
     float rightEdgeX = ImGui::GetWindowWidth() - fixedButtonWidth - ImGui::GetStyle().WindowPadding.x;

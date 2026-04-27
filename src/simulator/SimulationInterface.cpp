@@ -295,18 +295,22 @@ void SimulationInterface::renderPanels() {
             ImGui::TableNextColumn();
             ImGui::Text("VT");
             ImGui::TableNextColumn();
-            ImGui::Text("0x00");
+            ImGui::Text("0x%02X", pic.getVtCounter() & 0xFF);
             ImGui::TableNextRow();
             ImGui::TableNextColumn();
             ImGui::Text("WDT aktiv");
             ImGui::TableNextColumn();
-            bool wdtActive = false; // Hier solltest du den tatsächlichen Status der WDT abfragen
-            ImGui::Checkbox("##WDT", &wdtActive);
+            bool wdtActive = pic.isWdtEnabled();
+            if (ImGui::Checkbox("##WDT", &wdtActive)) {
+                pic.setWdtEnabled(wdtActive);
+            }
             ImGui::TableNextRow();
             ImGui::TableNextColumn();
             ImGui::Text("WDT");
             ImGui::TableNextColumn();
-            ImGui::Text("0x00");
+            ImGui::Text("%.3f / %.3f us",
+                        pic.getWdtCounterUs(),
+                        pic.getWdtTimeoutUs());
 
             ImGui::EndTable();
         }

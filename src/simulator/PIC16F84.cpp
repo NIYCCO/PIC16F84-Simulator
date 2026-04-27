@@ -56,3 +56,27 @@ int PIC16F84::getDataMemory(int address) const {
 uint64_t PIC16F84::getExecutedCycles() const {
     return cpu.getExecutedCycles();
 }
+
+double PIC16F84::getExecutedTimeUs() const {
+    return cpu.getExecutedTimeUs();
+}
+
+double PIC16F84::getWdtCounterUs() const {
+    return cpu.getWdtCounterUs();
+}
+
+double PIC16F84::getWdtTimeoutUs() const {
+    return cpu.getWdtTimeoutUs();
+}
+
+int PIC16F84::getVtCounter() const {
+    return cpu.getVtCounter();
+}
+
+bool PIC16F84::isWdtEnabled() const {
+    return cpu.isWdtEnabled();
+}
+
+bool PIC16F84::isSleeping() const {
+    return cpu.isSleeping();
+}
