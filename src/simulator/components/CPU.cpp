@@ -158,6 +158,17 @@ void CPU::refreshPcFromPcl() {
     pc = ((pclath << 8) | pcl) & 0x03FF;
 }
 
+int CPU::buildCallGotoTarget(int instruction) const {
+    // CALL/GOTO:
+    // low 11 Bits kommen aus dem Opcode
+    // high 2 Bits kommen aus PCLATH<4:3> -> PC<12:11>
+    const int low11 = instruction & 0x07FF;
+    const int pclath = dataMemory.read(0x0A) & 0x1F;
+    const int high2 = (pclath & 0x18) << 8; // bits 4:3 -> bits 12:11
+    return (high2 | low11) & 0x1FFF;
+}
+
+
 bool CPU::isTimerClockInternal() const {
     // OPTION bit5 = T0CS; 0 => interner Instruktions-Takt
     int option = dataMemory.read(0x81);
@@ -445,9 +456,10 @@ void CPU::executeAddlw(int instruction) {
 }
 
 void CPU::executeGoto(int instruction) {
-    int target = instruction & 0x07FF;
-    pc = target % 1024;
+    const int target = buildCallGotoTarget(instruction);
+    pc = target % 1024;  // Simulator nutzt 1K Programmspeicher
 }
+
 
 void CPU::executeMovwf(int instruction) {
     int f = instruction & 0x7F;
@@ -786,10 +798,11 @@ void CPU::executeBtfss(int instruction) {
 }
 
 void CPU::executeCall(int instruction) {
-    int target = instruction & 0x07FF;
-    stack.push(pc + 1); 
-    pc = target % 1024;
+    const int target = buildCallGotoTarget(instruction);
+    stack.push((pc + 1) & 0x1FFF);
+    pc = target % 1024;  // Simulator nutzt 1K Programmspeicher
 }
+
 
 void CPU::executeReturn(int instruction) {
     pc = stack.pop();

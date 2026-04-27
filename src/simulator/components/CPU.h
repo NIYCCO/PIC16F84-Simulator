@@ -84,6 +84,9 @@ private:
     void writeFileRegister(int f, int value);
     void refreshPcFromPcl();
 
+    int buildCallGotoTarget(int instruction) const;
+
+
     bool isTimerClockInternal() const;
     int getTimerPrescalerDivisor() const;
     void incrementTimer0();
