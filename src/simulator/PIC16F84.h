@@ -21,12 +21,21 @@ class PIC16F84 {
         int getStatusRegister() const;
         int getDataMemory(int address) const;
         uint64_t getExecutedCycles() const;
+        double getExecutedTimeUs() const;
+        double getWdtCounterUs() const;
+        double getWdtTimeoutUs() const;
+        int getVtCounter() const;
+        bool isWdtEnabled() const;
+        bool isSleeping() const;
 
         int getStackPointer() const { return cpu.getStackPointer(); }
         int getStackValue(int index) const { return cpu.getStackValue(index); }
 
         void setWRegister(int value) { cpu.setWRegister(value); }
         void setDataMemory(int address, int value) { cpu.setDataMemoryValue(address, value); }
+        void setWdtEnabled(bool enabled) { cpu.setWdtEnabled(enabled); }
+        void setQuartzFrequencyMHz(double mhz) { cpu.setQuartzFrequencyMHz(mhz); }
+        double getQuartzFrequencyMHz() const { return cpu.getQuartzFrequencyMHz(); }
 
         int getLineForAddress(int address) const;
 

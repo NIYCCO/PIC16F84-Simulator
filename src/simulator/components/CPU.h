@@ -19,6 +19,14 @@ private:
 
     int timerPrescalerCounter;
     bool tmr0WrittenThisStep;
+    bool sleeping;
+    bool wdtEnabled;
+    double wdtCounterUs;
+    double quartzFrequencyMHz;
+    uint8_t prevPortB;
+    bool prevRb0Level;
+
+
     uint64_t executedCycles;
 
 
@@ -81,11 +89,22 @@ private:
     void incrementTimer0();
     void tickTimer0();
 
+    bool isPrescalerAssignedToWdt() const;
+    int getWdtPrescalerDivisor() const;
+    bool tickWdt(int cycles);
+    void clearWdt();
+    void handleWdtTimeout();
+    void performWdtReset();
+
+
     bool isGlobalInterruptEnabled() const;
     bool isTimer0InterruptEnabled() const;
     bool isTimer0InterruptFlagSet() const;
     bool shouldTriggerTimer0Interrupt() const;
     void enterInterrupt();
+    void updateExternalInterruptFlags();
+    bool shouldTriggerAnyInterrupt() const;
+
 
 
 
@@ -104,6 +123,7 @@ public:
     int getWRegister() const { return wRegister & 0xFF; }
     int getStatusRegister() const { return dataMemory.read(0x03); }  // NEU
     uint64_t getExecutedCycles() const { return executedCycles; }
+    double getExecutedTimeUs() const;
 
     int getStackPointer() const { return stack.getStackPointer(); }
     int getStackValue(int index) const { return stack.getStackValue(index); }
@@ -116,4 +136,18 @@ public:
     void setDataMemoryValue(int address, int value);
 
     uint8_t* getDataMemory() const { return dataMemory.getMemory(); }
+
+    void setWdtEnabled(bool enabled) {
+        wdtEnabled = enabled;
+        if (!wdtEnabled) clearWdt();
+    }
+
+    bool isWdtEnabled() const { return wdtEnabled; }
+    bool isSleeping() const { return sleeping; }
+    int getVtCounter() const { return timerPrescalerCounter; }
+    double getWdtCounterUs() const { return wdtCounterUs; }
+    double getWdtTimeoutUs() const;
+    void setQuartzFrequencyMHz(double mhz);
+    double getQuartzFrequencyMHz() const { return quartzFrequencyMHz; }
+
 };

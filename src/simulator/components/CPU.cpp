@@ -13,15 +13,27 @@ void CPU::reset() {
     pc = 0;
     instructionRegister = 0;
     wRegister = 0;
-    dataMemory.write(0x03, 0);
+    dataMemory.write(0x03, 0x18); // TO=1, PD=1 (Power-on-Reset Fall)
 
     // Timer/Prescaler interner Zustand
     timerPrescalerCounter = 0;
     tmr0WrittenThisStep = false;
+
+    // Laufzeit
     executedCycles = 0;
+
+    // Sleep/WDT
+    sleeping = false;
+    wdtEnabled = false;        // wird später über UI/Config aktiviert
+    wdtCounterUs = 0.0;
+    quartzFrequencyMHz = 4.0;
+
+    prevPortB = dataMemory.read(0x06) & 0xFF;
+    prevRb0Level = (prevPortB & 0x01) != 0;
 
     stack.reset();
 }
+
 
 
 int CPU::fetch() {
@@ -218,6 +230,54 @@ bool CPU::shouldTriggerTimer0Interrupt() const {
         && isTimer0InterruptFlagSet();
 }
 
+void CPU::updateExternalInterruptFlags() {
+    const int currentPortB = dataMemory.read(0x06) & 0xFF;
+    const int trisB = dataMemory.read(0x86) & 0xFF;     // Bank1: TRISB
+    const int option = dataMemory.read(0x81) & 0xFF;    // Bank1: OPTION
+    int intcon = dataMemory.read(0x0B) & 0xFF;          // INTCON
+
+    // RB0/INT (Bit0) - nur als Eingang relevant
+    const bool rb0IsInput = ((trisB & 0x01) != 0);
+    const bool currentRb0Level = (currentPortB & 0x01) != 0;
+    const bool intedgRising = ((option >> 6) & 0x01) != 0; // INTEDG
+
+    if (rb0IsInput) {
+        bool edgeDetected = false;
+        if (intedgRising) {
+            edgeDetected = (!prevRb0Level && currentRb0Level); // rising
+        } else {
+            edgeDetected = (prevRb0Level && !currentRb0Level); // falling
+        }
+
+        if (edgeDetected) {
+            intcon |= (1 << 1); // INTF setzen
+        }
+    }
+
+    // RB4..RB7 Change Interrupt - nur Eingangsbits
+    const int changedInputMask = ((currentPortB ^ prevPortB) & trisB & 0xF0);
+    if (changedInputMask != 0) {
+        intcon |= (1 << 0); // RBIF setzen
+    }
+
+    dataMemory.write(0x0B, intcon);
+
+    prevPortB = currentPortB;
+    prevRb0Level = currentRb0Level;
+}
+
+bool CPU::shouldTriggerAnyInterrupt() const {
+    if (!isGlobalInterruptEnabled()) return false;
+
+    const int intcon = dataMemory.read(0x0B) & 0xFF;
+
+    const bool timer0Req = ((intcon & (1 << 5)) != 0) && ((intcon & (1 << 2)) != 0); // T0IE & T0IF
+    const bool rb0Req    = ((intcon & (1 << 4)) != 0) && ((intcon & (1 << 1)) != 0); // INTE & INTF
+    const bool rb47Req   = ((intcon & (1 << 3)) != 0) && ((intcon & (1 << 0)) != 0); // RBIE & RBIF
+
+    return timer0Req || rb0Req || rb47Req;
+}
+
 void CPU::enterInterrupt() {
     // Rückkehradresse sichern (nächster Befehl)
     stack.push(pc & 0x3FF);
@@ -233,6 +293,97 @@ void CPU::enterInterrupt() {
     // Interrupt-Eintritt benötigt zusätzliche Instruktionszyklen.
     executedCycles += 2;
 }
+
+bool CPU::isPrescalerAssignedToWdt() const {
+    // OPTION bit3 = PSA; 1 => Prescaler an WDT
+    int option = dataMemory.read(0x81);
+    return ((option >> 3) & 0x01) != 0;
+}
+
+int CPU::getWdtPrescalerDivisor() const {
+    // OPTION bits 2..0 = PS2..PS0
+    // Beim WDT: 1:1 .. 1:128
+    int option = dataMemory.read(0x81);
+    int ps = option & 0x07;
+    return (1 << ps); // 1,2,4,...,128
+}
+
+void CPU::clearWdt() {
+    wdtCounterUs = 0.0;
+
+    // Wenn Prescaler dem WDT zugeordnet ist, wird er mit gelöscht.
+    if (isPrescalerAssignedToWdt()) {
+        timerPrescalerCounter = 0;
+    }
+}
+
+void CPU::performWdtReset() {
+    // Vereinfachter WDT-Reset
+    pc = 0;
+    instructionRegister = 0;
+    sleeping = false;
+    stack.reset();
+
+    // TO=0, PD=1 bei WDT-Reset während normalem Ablauf
+    int status = dataMemory.read(0x03);
+    status &= ~(1 << 4); // TO = 0
+    status |=  (1 << 3); // PD = 1
+    dataMemory.write(0x03, status);
+
+    clearWdt();
+}
+
+void CPU::handleWdtTimeout() {
+    if (sleeping) {
+        // WDT-Wakeup aus SLEEP:
+        // TO=0, PD bleibt 0, kein Reset, weiter mit nächstem Befehl.
+        sleeping = false;
+
+        int status = dataMemory.read(0x03);
+        status &= ~(1 << 4); // TO = 0
+        status &= ~(1 << 3); // PD = 0
+        dataMemory.write(0x03, status);
+
+        clearWdt();
+    } else {
+        performWdtReset();
+    }
+}
+
+bool CPU::tickWdt(int cycles) {
+    if (!wdtEnabled) return false;
+
+    const int prescaler = isPrescalerAssignedToWdt() ? getWdtPrescalerDivisor() : 1;
+
+    // Zeitmodell in Mikrosekunden, gekoppelt an die eingestellte Quarzfrequenz.
+    const double instructionCycleUs = 4.0 / quartzFrequencyMHz;
+    const double timeoutUs = 18000.0 * static_cast<double>(prescaler);
+
+    wdtCounterUs += static_cast<double>(cycles) * instructionCycleUs;
+
+    if (wdtCounterUs >= timeoutUs) {
+        handleWdtTimeout();
+        return true;
+    }
+
+    return false;
+}
+
+double CPU::getWdtTimeoutUs() const {
+    if (!wdtEnabled) return 0;
+    const int prescaler = isPrescalerAssignedToWdt() ? getWdtPrescalerDivisor() : 1;
+    return 18000.0 * static_cast<double>(prescaler);
+}
+
+double CPU::getExecutedTimeUs() const {
+    return static_cast<double>(executedCycles) * (4.0 / quartzFrequencyMHz);
+}
+
+void CPU::setQuartzFrequencyMHz(double mhz) {
+    if (mhz < 0.001) mhz = 0.001;
+    quartzFrequencyMHz = mhz;
+}
+
 
 
 
@@ -665,16 +816,20 @@ void CPU::executeSleep() {
     status &= ~(1 << 3);  // PD = 0
     status |=  (1 << 4);  // TO = 1
     dataMemory.write(0x03, status);
-    // TODO: Simulator in Sleep-Zustand versetzen
+
+    sleeping = true;
 }
+
 
 void CPU::executeClrwdt() {
     int status = dataMemory.read(0x03);
     status |= (1 << 4);  // TO = 1
     status |= (1 << 3);  // PD = 1
     dataMemory.write(0x03, status);
-    // TODO: Watchdog-Zähler zurücksetzen wenn Watchdog implementiert
+
+    clearWdt();
 }
+
 
 void CPU::decodeAndExecute(int instruction) {
     int cycles = 1;
@@ -844,7 +999,27 @@ void CPU::decodeAndExecute(int instruction) {
 }
 
 void CPU::step() {
+    // Wenn CPU schläft: keine Instruktion fetchen/ausführen.
+    // Externe Interrupt-Flags und WDT laufen aber weiter.
+    if (sleeping) {
+        updateExternalInterruptFlags();
+
+        if (shouldTriggerAnyInterrupt()) {
+            sleeping = false;
+            enterInterrupt();
+            dataMemory.write(0x02, pc & 0xFF);
+            return;
+        }
+
+        const bool wdtTimeout = tickWdt(1);
+        (void)wdtTimeout; // Wakeup/Reset wird in tickWdt intern behandelt.
+        dataMemory.write(0x02, pc & 0xFF);
+        return;
+    }
+
+
     fetch();
+    updateExternalInterruptFlags();
 
     std::cout << "PC=0x"
               << std::uppercase << std::hex
@@ -852,16 +1027,23 @@ void CPU::step() {
               << "  INST=0x"
               << std::setw(4) << instructionRegister
               << std::endl;
+
+    const uint64_t cyclesBefore = executedCycles;
+
     tmr0WrittenThisStep = false;
     decodeAndExecute(instructionRegister);
+
+    const int stepCycles = static_cast<int>(executedCycles - cyclesBefore);
+
     tickTimer0();
 
-    if (shouldTriggerTimer0Interrupt()) {
+    const bool wdtTimeout = tickWdt(stepCycles);
+    if (!wdtTimeout && shouldTriggerAnyInterrupt()) {
         enterInterrupt();
     }
 
-    dataMemory.write(0x02, pc & 0xFF);
 
+    dataMemory.write(0x02, pc & 0xFF);
 
     std::cout << "    W=0x"
               << std::setw(2) << (wRegister & 0xFF)
@@ -871,6 +1053,7 @@ void CPU::step() {
               << getStatusBit(STATUS_C)
               << std::endl;
 }
+
 
 void CPU::printState() const {
     std::cout << "CPU-Zustand:\n";
