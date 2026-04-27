@@ -23,6 +23,9 @@ private:
     bool wdtEnabled;
     double wdtCounterUs;
     double quartzFrequencyMHz;
+    uint8_t prevPortB;
+    bool prevRb0Level;
+
 
     uint64_t executedCycles;
 
@@ -99,6 +102,9 @@ private:
     bool isTimer0InterruptFlagSet() const;
     bool shouldTriggerTimer0Interrupt() const;
     void enterInterrupt();
+    void updateExternalInterruptFlags();
+    bool shouldTriggerAnyInterrupt() const;
+
 
 
 
