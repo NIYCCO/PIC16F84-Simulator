@@ -78,6 +78,13 @@ private:
     void incrementTimer0();
     void tickTimer0();
 
+    bool isGlobalInterruptEnabled() const;
+    bool isTimer0InterruptEnabled() const;
+    bool isTimer0InterruptFlagSet() const;
+    bool shouldTriggerTimer0Interrupt() const;
+    void enterInterrupt();
+
+
 
 
 

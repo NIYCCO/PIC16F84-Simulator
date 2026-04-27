@@ -196,6 +196,41 @@ void CPU::tickTimer0() {
     }
 }
 
+bool CPU::isGlobalInterruptEnabled() const {
+    // INTCON bit7 = GIE
+    return (dataMemory.read(0x0B) & (1 << 7)) != 0;
+}
+
+bool CPU::isTimer0InterruptEnabled() const {
+    // INTCON bit5 = T0IE
+    return (dataMemory.read(0x0B) & (1 << 5)) != 0;
+}
+
+bool CPU::isTimer0InterruptFlagSet() const {
+    // INTCON bit2 = T0IF
+    return (dataMemory.read(0x0B) & (1 << 2)) != 0;
+}
+
+bool CPU::shouldTriggerTimer0Interrupt() const {
+    return isGlobalInterruptEnabled()
+        && isTimer0InterruptEnabled()
+        && isTimer0InterruptFlagSet();
+}
+
+void CPU::enterInterrupt() {
+    // Rückkehradresse sichern (nächster Befehl)
+    stack.push(pc & 0x3FF);
+
+    // GIE löschen (PIC sperrt weitere Interrupts beim Eintritt)
+    int intcon = dataMemory.read(0x0B);
+    intcon &= ~(1 << 7);
+    dataMemory.write(0x0B, intcon);
+
+    // ISR-Einsprungadresse
+    pc = 0x0004;
+}
+
+
 
 
 
@@ -796,7 +831,13 @@ void CPU::step() {
     tmr0WrittenThisStep = false;
     decodeAndExecute(instructionRegister);
     tickTimer0();
+
+    if (shouldTriggerTimer0Interrupt()) {
+        enterInterrupt();
+    }
+
     dataMemory.write(0x02, pc & 0xFF);
+
 
     std::cout << "    W=0x"
               << std::setw(2) << (wRegister & 0xFF)
