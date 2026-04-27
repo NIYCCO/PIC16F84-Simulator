@@ -14,8 +14,14 @@ void CPU::reset() {
     instructionRegister = 0;
     wRegister = 0;
     dataMemory.write(0x03, 0);
-    stack.reset();   
+
+    // Timer/Prescaler interner Zustand
+    timerPrescalerCounter = 0;
+    tmr0WrittenThisStep = false;
+
+    stack.reset();
 }
+
 
 int CPU::fetch() {
     instructionRegister = programMemory.getInstruction(pc);
@@ -50,7 +56,6 @@ int CPU::normalizeFileAddress(int rawAddress) const {
     // SFR-Spiegelungen Bank1 -> Bank0
     switch (a) {
         case 0x80: return 0x00; // INDF
-        case 0x81: return 0x01; // TMR0
         case 0x82: return 0x02; // PCL
         case 0x83: return 0x03; // STATUS
         case 0x84: return 0x04; // FSR
@@ -106,6 +111,14 @@ void CPU::writeFileRegister(int f, int value) {
 
     if (direct != 0x00) {
         dataMemory.write(direct, v);
+
+        // Schreibzugriff auf TMR0:
+        // - Prescaler wird gelöscht
+        // - für diesen Schritt kein zusätzlicher Timer-Tick
+        if (direct == 0x01) {
+            timerPrescalerCounter = 0;
+            tmr0WrittenThisStep = true;
+        }
         return;
     }
 
@@ -117,13 +130,72 @@ void CPU::writeFileRegister(int f, int value) {
     if (indirect == 0x00) return;
 
     dataMemory.write(indirect, v);
+
+    // Auch indirekter Zugriff auf TMR0 muss Prescaler löschen
+    if (indirect == 0x01) {
+        timerPrescalerCounter = 0;
+        tmr0WrittenThisStep = true;
+    }
 }
+
 
 void CPU::refreshPcFromPcl() {
     int pcl = dataMemory.read(0x02) & 0xFF;
     int pclath = dataMemory.read(0x0A) & 0x1F;
     pc = ((pclath << 8) | pcl) & 0x03FF;
 }
+
+bool CPU::isTimerClockInternal() const {
+    // OPTION bit5 = T0CS; 0 => interner Instruktions-Takt
+    int option = dataMemory.read(0x81);
+    return ((option >> 5) & 0x01) == 0;
+}
+
+int CPU::getTimerPrescalerDivisor() const {
+    // OPTION bits 2..0 = PS2..PS0
+    // Für Timer0 gilt bei PSA=0: 000=>1:2 ... 111=>1:256
+    int option = dataMemory.read(0x81);
+    int ps = option & 0x07;
+    return (1 << (ps + 1)); // 2,4,8,...,256
+}
+
+void CPU::incrementTimer0() {
+    int tmr0 = dataMemory.read(0x01) & 0xFF;
+    int next = (tmr0 + 1) & 0xFF;
+    dataMemory.write(0x01, next);
+
+    // Overflow: 0xFF -> 0x00 setzt T0IF (INTCON bit2)
+    if (next == 0x00) {
+        int intcon = dataMemory.read(0x0B);
+        intcon |= (1 << 2); // T0IF
+        dataMemory.write(0x0B, intcon);
+    }
+}
+
+void CPU::tickTimer0() {
+    // Wenn in diesem Schritt auf TMR0 geschrieben wurde:
+    // kein zusätzlicher Tick im selben Schritt.
+    if (tmr0WrittenThisStep) return;
+
+    // Externer Takt (T0CS=1) wird in diesem Schritt noch nicht simuliert.
+    if (!isTimerClockInternal()) return;
+
+    int option = dataMemory.read(0x81);
+    bool psa = ((option >> 3) & 0x01) != 0; // PSA=1 => Prescaler bei WDT
+
+    if (psa) {
+        // Timer ohne Prescaler -> pro CPU-Schritt ein Tick
+        incrementTimer0();
+    } else {
+        // Prescaler gehört zum Timer
+        timerPrescalerCounter++;
+        if (timerPrescalerCounter >= getTimerPrescalerDivisor()) {
+            timerPrescalerCounter = 0;
+            incrementTimer0();
+        }
+    }
+}
+
 
 
 
@@ -721,9 +793,9 @@ void CPU::step() {
               << "  INST=0x"
               << std::setw(4) << instructionRegister
               << std::endl;
-
+    tmr0WrittenThisStep = false;
     decodeAndExecute(instructionRegister);
-
+    tickTimer0();
     dataMemory.write(0x02, pc & 0xFF);
 
     std::cout << "    W=0x"

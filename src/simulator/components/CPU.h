@@ -15,7 +15,9 @@ private:
 
     Stack stack;  
 
-    
+    int timerPrescalerCounter;
+    bool tmr0WrittenThisStep;
+
 
     static const int STATUS_C  = 0;
     static const int STATUS_DC = 1;
@@ -70,6 +72,12 @@ private:
     int readFileRegister(int f) const;
     void writeFileRegister(int f, int value);
     void refreshPcFromPcl();
+
+    bool isTimerClockInternal() const;
+    int getTimerPrescalerDivisor() const;
+    void incrementTimer0();
+    void tickTimer0();
+
 
 
 
