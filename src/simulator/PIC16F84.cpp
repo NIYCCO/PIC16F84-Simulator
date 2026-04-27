@@ -52,3 +52,7 @@ int PIC16F84::getLineForAddress(int address) const {
 int PIC16F84::getDataMemory(int address) const {
     return dataMemory.read(address);
 }
+
+uint64_t PIC16F84::getExecutedCycles() const {
+    return cpu.getExecutedCycles();
+}

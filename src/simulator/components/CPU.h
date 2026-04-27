@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstdint>
+
 #include "ProgramMemory.h"
 #include "DataMemory.h"
 #include "Stack.h"   
@@ -17,6 +19,7 @@ private:
 
     int timerPrescalerCounter;
     bool tmr0WrittenThisStep;
+    uint64_t executedCycles;
 
 
     static const int STATUS_C  = 0;
@@ -100,6 +103,7 @@ public:
     int getInstructionRegister() const { return instructionRegister; }
     int getWRegister() const { return wRegister & 0xFF; }
     int getStatusRegister() const { return dataMemory.read(0x03); }  // NEU
+    uint64_t getExecutedCycles() const { return executedCycles; }
 
     int getStackPointer() const { return stack.getStackPointer(); }
     int getStackValue(int index) const { return stack.getStackValue(index); }

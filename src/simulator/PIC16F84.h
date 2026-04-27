@@ -20,6 +20,7 @@ class PIC16F84 {
         int getWRegister() const;
         int getStatusRegister() const;
         int getDataMemory(int address) const;
+        uint64_t getExecutedCycles() const;
 
         int getStackPointer() const { return cpu.getStackPointer(); }
         int getStackValue(int index) const { return cpu.getStackValue(index); }

@@ -89,22 +89,57 @@ void Editor::render() {
         pic->reset();
     }
 
-    const char* maxText = "Laufzeit: 00.000,00 \xC2\xB5s";
+    ImGui::SameLine();
+    ImGui::Text("Quarz [MHz]");
+    ImGui::SameLine();
+
+    static const char* quartzLabels[] = {"1.000", "4.000", "8.000", "16.000", "20.000"};
+    static const double quartzValues[] = {1.0, 4.0, 8.0, 16.0, 20.0};
+    int selectedQuartz = -1;
+    for (int i = 0; i < 5; ++i) {
+        if (quartzFrequencyMHz == quartzValues[i]) {
+            selectedQuartz = i;
+            break;
+        }
+    }
+
+    ImGui::SetNextItemWidth(90.0f);
+    if (ImGui::Combo("##quartzCombo", &selectedQuartz, quartzLabels, 5)) {
+        if (selectedQuartz >= 0 && selectedQuartz < 5) {
+            quartzFrequencyMHz = quartzValues[selectedQuartz];
+        }
+    }
+
+    ImGui::SameLine();
+    ImGui::SetNextItemWidth(90.0f);
+    if (ImGui::InputDouble("##quartzInput", &quartzFrequencyMHz, 0.0, 0.0, "%.3f")) {
+        if (quartzFrequencyMHz < 0.001) {
+            quartzFrequencyMHz = 0.001;
+        }
+    }
+
+    const uint64_t executedCycles = pic->getExecutedCycles();
+    const double instructionCycleUs = 4.0 / quartzFrequencyMHz;
+    const double runtimeUs = static_cast<double>(executedCycles) * instructionCycleUs;
+
+    char laufzeitText[96];
+    if (runtimeUs >= 1000000.0) {
+        snprintf(laufzeitText, sizeof(laufzeitText), "Laufzeit: %.3f s", runtimeUs / 1000000.0);
+    } else if (runtimeUs >= 1000.0) {
+        snprintf(laufzeitText, sizeof(laufzeitText), "Laufzeit: %.3f ms", runtimeUs / 1000.0);
+    } else {
+        snprintf(laufzeitText, sizeof(laufzeitText), "Laufzeit: %.3f \xC2\xB5s", runtimeUs);
+    }
+
+    const char* maxText = "Laufzeit: 0000000.000 ms";
     ImVec2 maxTextSize = ImGui::CalcTextSize(maxText);
     float fixedButtonWidth = maxTextSize.x + ImGui::GetStyle().FramePadding.x * 2.0f;
-
-    float aktuelleLaufzeit = 0.0f;
-    char laufzeitText[64];
-    snprintf(laufzeitText, sizeof(laufzeitText), "Laufzeit: %.2f \xC2\xB5s", aktuelleLaufzeit);
-
     float rightEdgeX = ImGui::GetWindowWidth() - fixedButtonWidth - ImGui::GetStyle().WindowPadding.x;
     ImGui::SameLine(rightEdgeX);
 
     ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImGui::GetStyleColorVec4(ImGuiCol_Button));
     ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImGui::GetStyleColorVec4(ImGuiCol_Button));
-
     ImGui::Button(laufzeitText, ImVec2(fixedButtonWidth, 0.0f));
-
     ImGui::PopStyleColor(2);
 
     ImGui::Spacing();

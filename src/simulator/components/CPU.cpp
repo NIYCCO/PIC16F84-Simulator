@@ -18,6 +18,7 @@ void CPU::reset() {
     // Timer/Prescaler interner Zustand
     timerPrescalerCounter = 0;
     tmr0WrittenThisStep = false;
+    executedCycles = 0;
 
     stack.reset();
 }
@@ -228,6 +229,9 @@ void CPU::enterInterrupt() {
 
     // ISR-Einsprungadresse
     pc = 0x0004;
+
+    // Interrupt-Eintritt benötigt zusätzliche Instruktionszyklen.
+    executedCycles += 2;
 }
 
 
@@ -673,6 +677,8 @@ void CPU::executeClrwdt() {
 }
 
 void CPU::decodeAndExecute(int instruction) {
+    int cycles = 1;
+
     if ((instruction & 0x3F00) == Instruction::MOVLW) {
         executeMovlw(instruction);
         pc++;
@@ -699,6 +705,7 @@ void CPU::decodeAndExecute(int instruction) {
     }
     else if ((instruction & 0x3800) == Instruction::GOTO) {
         executeGoto(instruction);
+        cycles = 2;
     }
     else if ((instruction & 0x3F80) == Instruction::MOVWF) {
         executeMovwf(instruction);
@@ -753,12 +760,18 @@ void CPU::decodeAndExecute(int instruction) {
         pc++;
     }
     else if ((instruction & 0x3F00) == Instruction::DECFSZ) {
+        int prevPc = pc;
         executeDecfsz(instruction);
         pc++;
+        int advanced = (pc - prevPc + 1024) % 1024;
+        if (advanced == 2) cycles = 2;
     }
     else if ((instruction & 0x3F00) == Instruction::INCFSZ) {
+        int prevPc = pc;
         executeIncfsz(instruction);
         pc++;
+        int advanced = (pc - prevPc + 1024) % 1024;
+        if (advanced == 2) cycles = 2;
     }
     else if ((instruction & 0x3F00) == Instruction::RLF) {
         executeRlf(instruction);
@@ -777,24 +790,34 @@ void CPU::decodeAndExecute(int instruction) {
         pc++;
     }
     else if ((instruction & 0x3C00) == Instruction::BTFSC) {
+        int prevPc = pc;
         executeBtfsc(instruction);
         pc++;
+        int advanced = (pc - prevPc + 1024) % 1024;
+        if (advanced == 2) cycles = 2;
     }
     else if ((instruction & 0x3C00) == Instruction::BTFSS) {
+        int prevPc = pc;
         executeBtfss(instruction);
         pc++;
+        int advanced = (pc - prevPc + 1024) % 1024;
+        if (advanced == 2) cycles = 2;
     }
     else if ((instruction & 0x3800) == Instruction::CALL) {
         executeCall(instruction);
+        cycles = 2;
     }
     else if (instruction == Instruction::RETURN) {
         executeReturn(instruction);
+        cycles = 2;
     }
     else if ((instruction & 0x3F00) == Instruction::RETLW) {
         executeRetlw(instruction);
+        cycles = 2;
     }
     else if (instruction == Instruction::RETFIE) {
         executeRetfie(instruction);
+        cycles = 2;
     }
     else if (instruction == Instruction::NOP) {
         executeNop();
@@ -817,6 +840,7 @@ void CPU::decodeAndExecute(int instruction) {
     }
 
     pc %= 1024;
+    executedCycles += static_cast<uint64_t>(cycles);
 }
 
 void CPU::step() {

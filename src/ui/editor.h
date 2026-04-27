@@ -27,6 +27,7 @@ class Editor {
         TextEditor editor;
         std::unordered_set<int> breakpoints;
         bool stepInRequested = false;
+        double quartzFrequencyMHz = 4.0;
 
         void setBreakpoint(int line);
         void removeBreakpoint(int line);
