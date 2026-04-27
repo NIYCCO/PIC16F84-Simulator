@@ -110,13 +110,13 @@ void Editor::render() {
         }
     }
 
-    ImGui::SameLine();
+    /* ImGui::SameLine();
     ImGui::SetNextItemWidth(90.0f);
     if (ImGui::InputDouble("##quartzInput", &quartzFrequencyMHz, 0.0, 0.0, "%.3f")) {
         if (quartzFrequencyMHz < 0.001) {
             quartzFrequencyMHz = 0.001;
         }
-    }
+    } */
 
     const uint64_t executedCycles = pic->getExecutedCycles();
     const double instructionCycleUs = 4.0 / quartzFrequencyMHz;
