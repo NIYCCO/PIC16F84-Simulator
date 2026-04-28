@@ -26,6 +26,9 @@ private:
     uint8_t prevPortB;
     bool prevRb0Level;
 
+    uint8_t portALatch;
+    uint8_t portBLatch;
+
 
     uint64_t executedCycles;
 
@@ -84,6 +87,9 @@ private:
     void writeFileRegister(int f, int value);
     void refreshPcFromPcl();
 
+    int buildCallGotoTarget(int instruction) const;
+
+
     bool isTimerClockInternal() const;
     int getTimerPrescalerDivisor() const;
     void incrementTimer0();
@@ -105,6 +111,7 @@ private:
     void updateExternalInterruptFlags();
     bool shouldTriggerAnyInterrupt() const;
 
+    void applyPortLatchToPins(int portAddr, int trisAddr, int latchValue);
 
 
 

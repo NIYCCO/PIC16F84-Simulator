@@ -24,12 +24,25 @@ void CPU::reset() {
 
     // Sleep/WDT
     sleeping = false;
-    wdtEnabled = false;        // wird später über UI/Config aktiviert
+    wdtEnabled = true;         // standardmäßig aktiv
     wdtCounterUs = 0.0;
     quartzFrequencyMHz = 4.0;
 
     prevPortB = dataMemory.read(0x06) & 0xFF;
     prevRb0Level = (prevPortB & 0x01) != 0;
+
+    // Port-Latches
+    portALatch = 0x00;
+    portBLatch = 0x00;
+
+    // Nach Reset: TRIS typischerweise Eingang
+    dataMemory.write(0x85, 0x1F); // TRISA (nur RA0..RA4 relevant)
+    dataMemory.write(0x86, 0xFF); // TRISB
+    dataMemory.write(0x05, 0x00); // PORTA pins
+    dataMemory.write(0x06, 0x00); // PORTB pins
+
+    applyPortLatchToPins(0x05, 0x85, portALatch);
+    applyPortLatchToPins(0x06, 0x86, portBLatch);
 
     stack.reset();
 }
@@ -121,34 +134,53 @@ int CPU::readFileRegister(int f) const {
 void CPU::writeFileRegister(int f, int value) {
     int v = value & 0xFF;
     int direct = resolveDirectAddress(f);
+    int target = direct;
 
-    if (direct != 0x00) {
-        dataMemory.write(direct, v);
+    // INDF: indirekter Zugriff über FSR
+    if (direct == 0x00) {
+        int fsr = dataMemory.read(0x04) & 0xFF;
+        target = normalizeFileAddress(fsr);
 
-        // Schreibzugriff auf TMR0:
-        // - Prescaler wird gelöscht
-        // - für diesen Schritt kein zusätzlicher Timer-Tick
-        if (direct == 0x01) {
-            timerPrescalerCounter = 0;
-            tmr0WrittenThisStep = true;
-        }
+        // INDF auf INDF: no-op
+        if (target == 0x00) return;
+    }
+
+    // TMR0: Schreibzugriff löscht Vorteiler
+    if (target == 0x01) {
+        dataMemory.write(0x01, v);
+        timerPrescalerCounter = 0;
+        tmr0WrittenThisStep = true;
         return;
     }
 
-    // INDF: indirekter Zugriff über FSR
-    int fsr = dataMemory.read(0x04) & 0xFF;
-    int indirect = normalizeFileAddress(fsr);
-
-    // INDF auf INDF: no-op
-    if (indirect == 0x00) return;
-
-    dataMemory.write(indirect, v);
-
-    // Auch indirekter Zugriff auf TMR0 muss Prescaler löschen
-    if (indirect == 0x01) {
-        timerPrescalerCounter = 0;
-        tmr0WrittenThisStep = true;
+    // TRISA/TRISB ändern Richtung -> Pins aus Latch neu auflösen
+    if (target == 0x85) {
+        dataMemory.write(0x85, v & 0x1F); // nur RA0..RA4
+        applyPortLatchToPins(0x05, 0x85, portALatch);
+        return;
     }
+
+    if (target == 0x86) {
+        dataMemory.write(0x86, v);
+        applyPortLatchToPins(0x06, 0x86, portBLatch);
+        return;
+    }
+
+    // PORTA/PORTB schreiben: schreibt Latch, Pins nur für Output-Bits übernehmen
+    if (target == 0x05) {
+        portALatch = v & 0x1F;
+        applyPortLatchToPins(0x05, 0x85, portALatch);
+        return;
+    }
+
+    if (target == 0x06) {
+        portBLatch = v;
+        applyPortLatchToPins(0x06, 0x86, portBLatch);
+        return;
+    }
+
+    // Standardfall
+    dataMemory.write(target, v);
 }
 
 
@@ -157,6 +189,34 @@ void CPU::refreshPcFromPcl() {
     int pclath = dataMemory.read(0x0A) & 0x1F;
     pc = ((pclath << 8) | pcl) & 0x03FF;
 }
+
+void CPU::applyPortLatchToPins(int portAddr, int trisAddr, int latchValue) {
+    const int tris = dataMemory.read(trisAddr) & 0xFF;
+    const int pins = dataMemory.read(portAddr) & 0xFF;
+
+    const int outputMask = (~tris) & 0xFF; // TRIS=0 => Output
+    const int inputMask  = tris & 0xFF;    // TRIS=1 => Input
+
+    int newPins = (pins & inputMask) | ((latchValue & 0xFF) & outputMask);
+
+    // PIC16F84: PORTA nur 5 Bits (RA0..RA4)
+    if (portAddr == 0x05) {
+        newPins &= 0x1F;
+    }
+
+    dataMemory.write(portAddr, newPins);
+}
+
+int CPU::buildCallGotoTarget(int instruction) const {
+    // CALL/GOTO:
+    // low 11 Bits kommen aus dem Opcode
+    // high 2 Bits kommen aus PCLATH<4:3> -> PC<12:11>
+    const int low11 = instruction & 0x07FF;
+    const int pclath = dataMemory.read(0x0A) & 0x1F;
+    const int high2 = (pclath & 0x18) << 8; // bits 4:3 -> bits 12:11
+    return (high2 | low11) & 0x1FFF;
+}
+
 
 bool CPU::isTimerClockInternal() const {
     // OPTION bit5 = T0CS; 0 => interner Instruktions-Takt
@@ -445,9 +505,10 @@ void CPU::executeAddlw(int instruction) {
 }
 
 void CPU::executeGoto(int instruction) {
-    int target = instruction & 0x07FF;
-    pc = target % 1024;
+    const int target = buildCallGotoTarget(instruction);
+    pc = target % 1024;  // Simulator nutzt 1K Programmspeicher
 }
+
 
 void CPU::executeMovwf(int instruction) {
     int f = instruction & 0x7F;
@@ -786,10 +847,11 @@ void CPU::executeBtfss(int instruction) {
 }
 
 void CPU::executeCall(int instruction) {
-    int target = instruction & 0x07FF;
-    stack.push(pc + 1); 
-    pc = target % 1024;
+    const int target = buildCallGotoTarget(instruction);
+    stack.push((pc + 1) & 0x1FFF);
+    pc = target % 1024;  // Simulator nutzt 1K Programmspeicher
 }
+
 
 void CPU::executeReturn(int instruction) {
     pc = stack.pop();
