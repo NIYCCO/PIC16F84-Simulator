@@ -12,13 +12,14 @@ class Editor {
         Editor(PIC16F84 &pic);
 
         void openFile(const std::string &path);
-        void render();
+        void render(bool simulationRunning);
 
         std::unordered_set<int> getBreakpoints() const { return breakpoints; }
         
         void displayStepMarker(int line);
 
         bool handleGoRequest();
+        bool handleResetRequest();
         bool goRequested = false;
         bool handleStepInRequest();
 
@@ -27,6 +28,7 @@ class Editor {
         TextEditor editor;
         std::unordered_set<int> breakpoints;
         bool stepInRequested = false;
+        bool resetRequested = false;
         double quartzFrequencyMHz = 4.0;
 
         void setBreakpoint(int line);

@@ -462,7 +462,7 @@ void SimulationInterface::renderPanels() {
     ImGui::End();
 
 
-    editor.render();
+    editor.render(isRunning);
 
     if (editor.handleStepInRequest()) {
         pic.step();
@@ -472,6 +472,12 @@ void SimulationInterface::renderPanels() {
 
     if (editor.handleGoRequest()) {
         isRunning = !isRunning;
+    }
+
+    if (editor.handleResetRequest()) {
+        pic.reset();
+        int line = pic.getLineForAddress(pic.getPC());
+        editor.displayStepMarker(line);
     }
 
     ImGuiWindowFlags mem_edit_flags = ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse;

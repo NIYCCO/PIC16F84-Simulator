@@ -66,8 +66,10 @@ void Editor::openFile(const std::string &path) {
     }
 }
 
-void Editor::render() {
+void Editor::render(bool simulationRunning) {
     ImGui::Begin("Text Editor", nullptr, ImGuiWindowFlags_NoMove);
+
+    ImGui::BeginDisabled(simulationRunning);
     if (ImGui::Button("Step in", ImVec2(80, 0))) {
         std::cout << "Step in button clicked!" << std::endl;
         stepInRequested = true;
@@ -80,16 +82,20 @@ void Editor::render() {
     if (ImGui::Button("Step over", ImVec2(80, 0))) {
         std::cout << "Step over button clicked!" << std::endl;
     }
+    ImGui::EndDisabled();
     ImGui::SameLine();
     if (ImGui::Button("Go", ImVec2(80, 0))) {
         std::cout << "Go button clicked!" << std::endl;
         goRequested = true;
     }
     ImGui::SameLine();
+
+    ImGui::BeginDisabled(simulationRunning);
     if (ImGui::Button("Reset", ImVec2(80, 0))) {
         std::cout << "Reset button clicked!" << std::endl;
-        pic->reset();
+        resetRequested = true;
     }
+    ImGui::EndDisabled();
 
     ImGui::SameLine();
     ImGui::Text("Quarz [MHz]");
@@ -112,13 +118,13 @@ void Editor::render() {
         }
     }
 
-    /* ImGui::SameLine();
+    ImGui::SameLine();
     ImGui::SetNextItemWidth(90.0f);
     if (ImGui::InputDouble("##quartzInput", &quartzFrequencyMHz, 0.0, 0.0, "%.3f")) {
         if (quartzFrequencyMHz < 0.001) {
             quartzFrequencyMHz = 0.001;
         }
-    } */
+    }
 
     pic->setQuartzFrequencyMHz(quartzFrequencyMHz);
     const double runtimeUs = pic->getExecutedTimeUs();
@@ -177,6 +183,14 @@ bool Editor::handleStepInRequest() {
 bool Editor::handleGoRequest() {
     if (goRequested) {
         goRequested = false;
+        return true;
+    }
+    return false;
+}
+
+bool Editor::handleResetRequest() {
+    if (resetRequested) {
+        resetRequested = false;
         return true;
     }
     return false;
