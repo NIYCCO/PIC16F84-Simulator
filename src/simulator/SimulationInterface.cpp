@@ -204,6 +204,7 @@ void SimulationInterface::renderMenuBar() {
 }
 
 void SimulationInterface::renderPanels() {
+    //ImGui::ShowDemoWindow();
     auto renderEditableRegister = [this](const char* label, const char* id, uint8_t value, auto setter) {
         ImGui::TableNextRow();
         ImGui::TableNextColumn();
@@ -246,22 +247,76 @@ void SimulationInterface::renderPanels() {
     };
 
     ImGui::Begin("Properties", nullptr, ImGuiWindowFlags_NoMove);
-    ImGui::Text("Details zum ausgewählten Objekt");
-    if (ImGui::Button("TEST")) {
-        std::cout << "Test clicked!" << std::endl;
-        std::cout << "\n=== TEST ===" << std::endl;
-        std::cout << "PC vorher: 0x" << std::hex << std::uppercase << pic.getPC() << std::endl;
-        std::cout << "IR vorher: 0x" << std::hex << std::uppercase << pic.getInstructionRegister() << std::endl;
-        std::cout << "W vorher: 0x" << std::hex << std::uppercase << pic.getWRegister() << std::endl;
-        std::cout << "STATUS vorher: 0x" << std::hex << std::uppercase << pic.getStatusRegister() << std::endl;
+        ImGui::BeginChild("Tris", ImVec2(0.0f, 0.0f), ImGuiChildFlags_AutoResizeY | ImGuiChildFlags_Borders);
+            if (ImGui::BeginTable("trisAtable", 9, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_SizingStretchSame)) {
+                const char* headers[] = {"RA", "7", "6", "5", "4", "3", "2", "1", "0"};
 
-        pic.step();
+                ImGui::TableNextRow();
+                for (int i = 0; i < 9; i++) {
+                    ImGui::TableSetColumnIndex(i);
+                    ImGui::TextUnformatted(headers[i]);
+                }
 
-        std::cout << "PC nachher: 0x" << std::hex << std::uppercase << pic.getPC() << std::endl;
-        std::cout << "IR nachher: 0x" << std::hex << std::uppercase << pic.getInstructionRegister() << std::endl;
-        std::cout << "W nachher: 0x" << std::hex << std::uppercase << pic.getWRegister() << std::endl;
-        std::cout << "STATUS nachher: 0x" << std::hex << std::uppercase << pic.getStatusRegister() << std::endl;
-    }
+                ImGui::TableNextRow();
+                ImGui::TableSetColumnIndex(0);
+                ImGui::TextUnformatted("Tris");
+
+                for (int i = 1; i < 9; i++) {
+                    ImGui::TableSetColumnIndex(i);
+                    ImGui::TextUnformatted("i");
+                }
+
+                ImGui::TableNextRow();
+                ImGui::TableSetColumnIndex(0);
+                ImGui::TextUnformatted("Pin");
+
+                for (int bit = 7; bit >= 0; --bit) {
+                    ImGui::TableSetColumnIndex(8 - bit);
+                    char bitId[32];
+                    snprintf(bitId, sizeof(bitId), "##porta_bit%d", bit);
+                    renderRegisterBitEditor(PORTA, bit, bitId);
+                }
+
+                ImGui::EndTable();
+            }
+
+            if (ImGui::BeginTable("trisBtable", 9, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_SizingStretchSame)) {
+                const char* headers[] = {"RB", "7", "6", "5", "4", "3", "2", "1", "0"};
+
+                ImGui::TableNextRow();
+                for (int i = 0; i < 9; i++) {
+                    ImGui::TableSetColumnIndex(i);
+                    ImGui::TextUnformatted(headers[i]);
+                }
+
+                ImGui::TableNextRow();
+                ImGui::TableSetColumnIndex(0);
+                ImGui::TextUnformatted("Tris");
+
+                for (int i = 1; i < 9; i++) {
+                    ImGui::TableSetColumnIndex(i);
+                    ImGui::TextUnformatted("i");
+                }
+
+                ImGui::TableNextRow();
+                ImGui::TableSetColumnIndex(0);
+                ImGui::TextUnformatted("Pin");
+
+                for (int bit = 7; bit >= 0; --bit) {
+                    ImGui::TableSetColumnIndex(8 - bit);
+                    char bitId[32];
+                    snprintf(bitId, sizeof(bitId), "##portb_bit%d", bit);
+                    renderRegisterBitEditor(PORTB, bit, bitId);
+                }
+
+                ImGui::EndTable();
+            }
+        ImGui::EndChild();
+        //ImGui::SameLine();
+        ImGui::BeginChild("Other", ImVec2(0.0f, 0.0f), ImGuiChildFlags_AutoResizeY | ImGuiChildFlags_Borders);
+            ImGui::Text("Hier könnten weitere Eigenschaften hin");
+        ImGui::EndChild();
+
     ImGui::End();
 
     ImGui::Begin("Stats", nullptr, ImGuiWindowFlags_NoMove);
