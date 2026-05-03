@@ -74,14 +74,14 @@ void Editor::render(bool simulationRunning) {
         std::cout << "Step in button clicked!" << std::endl;
         stepInRequested = true;
     }
-    ImGui::SameLine();
+    /* ImGui::SameLine();
     if (ImGui::Button("Step out", ImVec2(80, 0))) {
         std::cout << "Step out button clicked!" << std::endl;
     }
     ImGui::SameLine();
     if (ImGui::Button("Step over", ImVec2(80, 0))) {
         std::cout << "Step over button clicked!" << std::endl;
-    }
+    } */
     ImGui::EndDisabled();
     ImGui::SameLine();
     if (ImGui::Button("Go", ImVec2(80, 0))) {
