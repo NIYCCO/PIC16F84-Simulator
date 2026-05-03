@@ -313,8 +313,34 @@ void SimulationInterface::renderPanels() {
             }
         ImGui::EndChild();
         //ImGui::SameLine();
-        ImGui::BeginChild("Other", ImVec2(0.0f, 0.0f), ImGuiChildFlags_AutoResizeY | ImGuiChildFlags_Borders);
-            ImGui::Text("Hier könnten weitere Eigenschaften hin");
+        ImGui::BeginChild("Lauflicht", ImVec2(0.0f, 0.0f), ImGuiChildFlags_AutoResizeY | ImGuiChildFlags_Borders);
+
+            const float ledWidth = 34.0f;
+            const float ledHeight = 22.0f;
+            const float ledSpacing = 8.0f;
+            const float rounding = 0.0f;
+            const int portBValue = pic.getDataMemory(PORTB) & 0xFF;
+
+            ImDrawList* drawList = ImGui::GetWindowDrawList();
+            ImVec2 startPos = ImGui::GetCursorScreenPos();
+
+            for (int bit = 7; bit >= 0; --bit) {
+                bool isOn = ((portBValue >> bit) & 0x01) != 0;
+                float offset = static_cast<float>(7 - bit) * (ledWidth + ledSpacing);
+                ImVec2 rectMin(startPos.x + offset, startPos.y);
+                ImVec2 rectMax(rectMin.x + ledWidth, rectMin.y + ledHeight);
+
+                ImU32 fillColor = isOn
+                    ? IM_COL32(220, 40, 40, 255)
+                    : IM_COL32(90, 20, 20, 255);
+                ImU32 borderColor = isOn
+                    ? IM_COL32(255, 120, 120, 255)
+                    : IM_COL32(130, 50, 50, 255);
+
+                drawList->AddRectFilled(rectMin, rectMax, fillColor, rounding);
+            }
+
+            ImGui::Dummy(ImVec2(8.0f * ledWidth + 7.0f * ledSpacing, ledHeight));
         ImGui::EndChild();
 
     ImGui::End();
