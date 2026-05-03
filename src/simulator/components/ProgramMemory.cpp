@@ -23,6 +23,12 @@ void ProgramMemory::loadFromFile(const std::string& filename) {
         return;
     }
 
+    for (int i = 0; i < 1024; ++i) {
+        memory[i] = 0;
+        used[i] = false;
+        addressToLine[i] = -1;
+    }
+
     std::string line;
     int currentLineNumber = 0;
 
@@ -92,4 +98,16 @@ bool ProgramMemory::isUsed(int address) const {
 int ProgramMemory::getLineForAddress(int address) const {
     if (address < 0 || address >= 1024) return -1;
     return addressToLine[address];
+}
+
+int ProgramMemory::getAddressForLine(int line) const {
+    if (line < 0) return -1;
+
+    for (int address = 0; address < 1024; ++address) {
+        if (used[address] && addressToLine[address] == line) {
+            return address;
+        }
+    }
+
+    return -1;
 }

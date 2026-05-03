@@ -15,6 +15,9 @@ void PIC16F84::loadProgram(const std::string& path) {
 
 void PIC16F84::run() {
     while (programMemory.isUsed(cpu.getPC())) {
+        if (cpu.isSleeping() && !cpu.isWdtEnabled()) {
+            break;
+        }
         cpu.step();
     }
 }

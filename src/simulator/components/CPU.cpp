@@ -44,6 +44,15 @@ void CPU::reset() {
     applyPortLatchToPins(0x05, 0x85, portALatch);
     applyPortLatchToPins(0x06, 0x86, portBLatch);
 
+    for (int i = 0; i < 64; ++i) {
+        eeprom[i] = 0xFF;
+    }
+
+    eepromUnlockStage = 0;
+    dataMemory.write(0x88, 0x00); // EECON1
+    dataMemory.write(0x89, 0x00); // EECON2
+
+
     stack.reset();
 }
 
@@ -179,6 +188,17 @@ void CPU::writeFileRegister(int f, int value) {
         return;
     }
 
+    if (target == 0x88) {
+        handleEecon1Write(v);
+        return;
+    }
+
+    if (target == 0x89) {
+        handleEecon2Write(v);
+        return;
+    }
+
+
     // Standardfall
     dataMemory.write(target, v);
 }
@@ -206,6 +226,46 @@ void CPU::applyPortLatchToPins(int portAddr, int trisAddr, int latchValue) {
 
     dataMemory.write(portAddr, newPins);
 }
+
+void CPU::handleEecon2Write(int value) {
+    const int v = value & 0xFF;
+    dataMemory.write(0x89, v);
+
+    if (eepromUnlockStage == 0 && v == 0x55) {
+        eepromUnlockStage = 1;
+    } else if (eepromUnlockStage == 1 && v == 0xAA) {
+        eepromUnlockStage = 2;
+    } else {
+        eepromUnlockStage = 0;
+    }
+}
+
+void CPU::handleEecon1Write(int value) {
+    int eecon1 = value & 0x1F; // RD, WR, WREN, WRERR, EEIF
+    dataMemory.write(0x88, eecon1);
+
+    if (eecon1 & 0x01) { // RD
+        const int address = dataMemory.read(0x09) & 0x3F;
+        dataMemory.write(0x08, eeprom[address]);
+        eecon1 &= ~0x01;
+        dataMemory.write(0x88, eecon1);
+    }
+
+    if (eecon1 & 0x02) { // WR
+        const bool wrenEnabled = (eecon1 & 0x04) != 0;
+
+        if (wrenEnabled && eepromUnlockStage == 2) {
+            const int address = dataMemory.read(0x09) & 0x3F;
+            eeprom[address] = dataMemory.read(0x08) & 0xFF;
+            eecon1 |= (1 << 4); // EEIF
+        }
+
+        eecon1 &= ~0x02; // WR nach Abschluss wieder löschen
+        dataMemory.write(0x88, eecon1);
+        eepromUnlockStage = 0;
+    }
+}
+
 
 int CPU::buildCallGotoTarget(int instruction) const {
     // CALL/GOTO:
@@ -245,7 +305,7 @@ void CPU::incrementTimer0() {
     }
 }
 
-void CPU::tickTimer0() {
+void CPU::tickTimer0(int cycles) {
     // Wenn in diesem Schritt auf TMR0 geschrieben wurde:
     // kein zusätzlicher Tick im selben Schritt.
     if (tmr0WrittenThisStep) return;
@@ -257,14 +317,18 @@ void CPU::tickTimer0() {
     bool psa = ((option >> 3) & 0x01) != 0; // PSA=1 => Prescaler bei WDT
 
     if (psa) {
-        // Timer ohne Prescaler -> pro CPU-Schritt ein Tick
-        incrementTimer0();
+        // Timer ohne Prescaler -> ein Tick pro Instruktionszyklus
+        for (int i = 0; i < cycles; ++i) {
+            incrementTimer0();
+        }
     } else {
         // Prescaler gehört zum Timer
-        timerPrescalerCounter++;
-        if (timerPrescalerCounter >= getTimerPrescalerDivisor()) {
-            timerPrescalerCounter = 0;
-            incrementTimer0();
+        for (int i = 0; i < cycles; ++i) {
+            timerPrescalerCounter++;
+            if (timerPrescalerCounter >= getTimerPrescalerDivisor()) {
+                timerPrescalerCounter = 0;
+                incrementTimer0();
+            }
         }
     }
 }
@@ -543,8 +607,13 @@ void CPU::executeMovf(int instruction) {
 
 void CPU::executeClrf(int instruction) {
     int f = instruction & 0x7F;
+    int destination = resolveWriteAddress(f);
     writeFileRegister(f, 0);
     setStatusBit(STATUS_Z, true);
+
+    if (destination == 0x02) {
+        refreshPcFromPcl();
+    }
 }
 
 
@@ -592,8 +661,15 @@ void CPU::executeSubwf(int instruction) {
     setStatusBit(STATUS_C, fileVal >= w);
     setStatusBit(STATUS_DC, (fileVal & 0x0F) >= (w & 0x0F));
 
-    if (d == 0) wRegister = result8;
-    else writeFileRegister(f, result8);
+    if (d == 0) {
+        wRegister = result8;
+    } else {
+        int destination = resolveWriteAddress(f);
+        writeFileRegister(f, result8);
+        if (destination == 0x02) {
+            refreshPcFromPcl();
+        }
+    }
 }
 
 void CPU::executeComf(int instruction) {
@@ -1069,6 +1145,8 @@ void CPU::step() {
         if (shouldTriggerAnyInterrupt()) {
             sleeping = false;
             enterInterrupt();
+            tickTimer0(2);
+            tickWdt(2);
             dataMemory.write(0x02, pc & 0xFF);
             return;
         }
@@ -1097,11 +1175,13 @@ void CPU::step() {
 
     const int stepCycles = static_cast<int>(executedCycles - cyclesBefore);
 
-    tickTimer0();
+    tickTimer0(stepCycles);
 
     const bool wdtTimeout = tickWdt(stepCycles);
     if (!wdtTimeout && shouldTriggerAnyInterrupt()) {
         enterInterrupt();
+        tickTimer0(2);
+        tickWdt(2);
     }
 
 
@@ -1135,14 +1215,57 @@ void CPU::setDataMemoryValue(int address, int value) {
     int normalizedAddress = normalizeFileAddress(address);
     int maskedValue = value & 0xFF;
 
-    dataMemory.write(normalizedAddress, maskedValue);
-
-    if (normalizedAddress == 0x01) {
-        timerPrescalerCounter = 0;
-        tmr0WrittenThisStep = true;
-    }
-
-    if (normalizedAddress == 0x02) {
-        refreshPcFromPcl();
+    switch (normalizedAddress) {
+        case 0x00: {
+            int fsr = dataMemory.read(0x04) & 0xFF;
+            int indirectTarget = normalizeFileAddress(fsr);
+            if (indirectTarget != 0x00) {
+                setDataMemoryValue(indirectTarget, maskedValue);
+            }
+            return;
+        }
+        case 0x01: {
+            dataMemory.write(0x01, maskedValue);
+            timerPrescalerCounter = 0;
+            tmr0WrittenThisStep = true;
+            return;
+        }
+        case 0x02: {
+            dataMemory.write(0x02, maskedValue);
+            refreshPcFromPcl();
+            return;
+        }
+        case 0x05: {
+            portALatch = maskedValue & 0x1F;
+            applyPortLatchToPins(0x05, 0x85, portALatch);
+            return;
+        }
+        case 0x06: {
+            portBLatch = maskedValue;
+            applyPortLatchToPins(0x06, 0x86, portBLatch);
+            return;
+        }
+        case 0x85: {
+            dataMemory.write(0x85, maskedValue & 0x1F);
+            applyPortLatchToPins(0x05, 0x85, portALatch);
+            return;
+        }
+        case 0x86: {
+            dataMemory.write(0x86, maskedValue);
+            applyPortLatchToPins(0x06, 0x86, portBLatch);
+            return;
+        }
+            case 0x88: {
+            handleEecon1Write(maskedValue);
+            return;
+        }
+        case 0x89: {
+            handleEecon2Write(maskedValue);
+            return;
+        }
+    
+        default:
+            dataMemory.write(normalizedAddress, maskedValue);
+            return;
     }
 }

@@ -28,6 +28,11 @@ private:
 
     uint8_t portALatch;
     uint8_t portBLatch;
+    uint8_t eeprom[64];
+    int eepromUnlockStage;
+
+    void handleEecon1Write(int value);
+    void handleEecon2Write(int value);
 
 
     uint64_t executedCycles;
@@ -93,7 +98,7 @@ private:
     bool isTimerClockInternal() const;
     int getTimerPrescalerDivisor() const;
     void incrementTimer0();
-    void tickTimer0();
+    void tickTimer0(int cycles);
 
     bool isPrescalerAssignedToWdt() const;
     int getWdtPrescalerDivisor() const;
