@@ -514,7 +514,7 @@ void SimulationInterface::renderPanels() {
     ImGui::BeginChild("INTCON", ImVec2(0.0f, 0.0f), ImGuiChildFlags_Borders | ImGuiChildFlags_AutoResizeY);
         if (ImGui::BeginTable("tableINTCON", 8, ImGuiTableFlags_SizingStretchSame)) {
             ImGui::TableSetupColumn("GIE");
-            ImGui::TableSetupColumn("PIE");
+            ImGui::TableSetupColumn("EEIE");
             ImGui::TableSetupColumn("T0IE");
             ImGui::TableSetupColumn("INTE");
             ImGui::TableSetupColumn("RBIE");
@@ -544,6 +544,61 @@ void SimulationInterface::renderPanels() {
             ImGui::EndTable();
         }
     ImGui::EndChild();
+
+    ImGui::SeparatorText("EEPROM");
+    ImGui::BeginChild("EEPROM", ImVec2(0.0f, 0.0f), ImGuiChildFlags_Borders | ImGuiChildFlags_AutoResizeY);
+
+        if (ImGui::BeginTable("tableEEPROM", 2, ImGuiTableFlags_SizingStretchSame)) {
+            renderEditableRegister("EEADR", "##eeadr", static_cast<uint8_t>(pic.getDataMemory(EEADR) & 0x3F), [this](uint8_t value) {
+                pic.setDataMemory(EEADR, value & 0x3F);
+            });
+
+            renderEditableRegister("EEDATA", "##eedata", static_cast<uint8_t>(pic.getDataMemory(EEDATA)), [this](uint8_t value) {
+                pic.setDataMemory(EEDATA, value);
+            });
+
+            renderEditableRegister("EECON1", "##eecon1", static_cast<uint8_t>(pic.getDataMemory(EECON1) & 0x1F), [this](uint8_t value) {
+                pic.setDataMemory(EECON1, value & 0x1F);
+            });
+
+            renderEditableRegister("EECON2", "##eecon2", static_cast<uint8_t>(pic.getDataMemory(EECON2)), [this](uint8_t value) {
+                pic.setDataMemory(EECON2, value);
+            });
+
+            ImGui::EndTable();
+        }
+
+        ImGui::Spacing();
+
+        if (ImGui::Button("EEPROM lesen", ImVec2(120.0f, 0.0f))) {
+            int eecon1 = pic.getDataMemory(EECON1) & 0x1F;
+            eecon1 |= 0x01; // RD
+            pic.setDataMemory(EECON1, eecon1);
+        }
+
+        ImGui::SameLine();
+
+        if (ImGui::Button("EEPROM schreiben", ImVec2(140.0f, 0.0f))) {
+            int eecon1 = pic.getDataMemory(EECON1) & 0x1F;
+
+            pic.setDataMemory(EECON2, 0x55);
+            pic.setDataMemory(EECON2, 0xAA);
+
+            eecon1 |= 0x04; // WREN
+            pic.setDataMemory(EECON1, eecon1);
+
+            eecon1 |= 0x02; // WR
+            pic.setDataMemory(EECON1, eecon1);
+        }
+
+        ImGui::Spacing();
+        ImGui::Text("Adresse: 0x%02X", pic.getDataMemory(EEADR) & 0x3F);
+        ImGui::Text("Daten:   0x%02X", pic.getDataMemory(EEDATA) & 0xFF);
+        ImGui::Text("EECON1:  0x%02X", pic.getDataMemory(EECON1) & 0x1F);
+
+    ImGui::EndChild();
+
+
 
     ImGui::End();
 

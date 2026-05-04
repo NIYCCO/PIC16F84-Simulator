@@ -441,12 +441,14 @@ bool CPU::shouldTriggerAnyInterrupt() const {
     if (!isGlobalInterruptEnabled()) return false;
 
     const int intcon = dataMemory.read(0x0B) & 0xFF;
+    const int eecon1 = dataMemory.read(0x88) & 0xFF;
 
     const bool timer0Req = ((intcon & (1 << 5)) != 0) && ((intcon & (1 << 2)) != 0); // T0IE & T0IF
     const bool rb0Req    = ((intcon & (1 << 4)) != 0) && ((intcon & (1 << 1)) != 0); // INTE & INTF
     const bool rb47Req   = ((intcon & (1 << 3)) != 0) && ((intcon & (1 << 0)) != 0); // RBIE & RBIF
+    const bool eepromReq = ((intcon & (1 << 6)) != 0) && ((eecon1 & (1 << 4)) != 0); // EEIE & EEIF
 
-    return timer0Req || rb0Req || rb47Req;
+    return timer0Req || rb0Req || rb47Req || eepromReq;
 }
 
 void CPU::enterInterrupt() {
