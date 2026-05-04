@@ -30,6 +30,8 @@ void CPU::reset() {
 
     prevPortB = dataMemory.read(0x06) & 0xFF;
     prevRb0Level = (prevPortB & 0x01) != 0;
+    prevRa4Level = false;
+
 
     // Port-Latches
     portALatch = 0x00;
@@ -39,6 +41,7 @@ void CPU::reset() {
     dataMemory.write(0x85, 0x1F); // TRISA (nur RA0..RA4 relevant)
     dataMemory.write(0x86, 0xFF); // TRISB
     dataMemory.write(0x05, 0x00); // PORTA pins
+    prevRa4Level = (dataMemory.read(0x05) & 0x10) != 0;
     dataMemory.write(0x06, 0x00); // PORTB pins
 
     applyPortLatchToPins(0x05, 0x85, portALatch);
@@ -305,33 +308,77 @@ void CPU::incrementTimer0() {
     }
 }
 
+bool CPU::shouldIncrementTimer0OnExternalEdge() {
+    const int currentPortA = dataMemory.read(0x05) & 0x1F;
+    const bool currentRa4Level = (currentPortA & 0x10) != 0;
+
+    const int trisA = dataMemory.read(0x85) & 0x1F;
+    const bool ra4IsInput = (trisA & 0x10) != 0;
+
+    if (!ra4IsInput) {
+        prevRa4Level = currentRa4Level;
+        return false;
+    }
+
+    const int option = dataMemory.read(0x81) & 0xFF;
+    const bool countOnFallingEdge = ((option >> 4) & 0x01) != 0; // T0SE
+
+    const bool risingEdge = (!prevRa4Level && currentRa4Level);
+    const bool fallingEdge = (prevRa4Level && !currentRa4Level);
+
+    prevRa4Level = currentRa4Level;
+
+    if (!countOnFallingEdge) {
+        return risingEdge;
+    }
+
+    return fallingEdge;
+}
+
+
 void CPU::tickTimer0(int cycles) {
     // Wenn in diesem Schritt auf TMR0 geschrieben wurde:
     // kein zusätzlicher Tick im selben Schritt.
     if (tmr0WrittenThisStep) return;
 
-    // Externer Takt (T0CS=1) wird in diesem Schritt noch nicht simuliert.
-    if (!isTimerClockInternal()) return;
-
     int option = dataMemory.read(0x81);
     bool psa = ((option >> 3) & 0x01) != 0; // PSA=1 => Prescaler bei WDT
 
-    if (psa) {
-        // Timer ohne Prescaler -> ein Tick pro Instruktionszyklus
-        for (int i = 0; i < cycles; ++i) {
-            incrementTimer0();
-        }
-    } else {
-        // Prescaler gehört zum Timer
-        for (int i = 0; i < cycles; ++i) {
-            timerPrescalerCounter++;
-            if (timerPrescalerCounter >= getTimerPrescalerDivisor()) {
-                timerPrescalerCounter = 0;
+    if (isTimerClockInternal()) {
+        if (psa) {
+            // Timer ohne Prescaler -> ein Tick pro Instruktionszyklus
+            for (int i = 0; i < cycles; ++i) {
                 incrementTimer0();
             }
+        } else {
+            // Prescaler gehört zum Timer
+            for (int i = 0; i < cycles; ++i) {
+                timerPrescalerCounter++;
+                if (timerPrescalerCounter >= getTimerPrescalerDivisor()) {
+                    timerPrescalerCounter = 0;
+                    incrementTimer0();
+                }
+            }
+        }
+        return;
+    }
+
+    // Externer Takt über RA4/T0CKI
+    if (!shouldIncrementTimer0OnExternalEdge()) {
+        return;
+    }
+
+    if (psa) {
+        incrementTimer0();
+    } else {
+        timerPrescalerCounter++;
+        if (timerPrescalerCounter >= getTimerPrescalerDivisor()) {
+            timerPrescalerCounter = 0;
+            incrementTimer0();
         }
     }
 }
+
 
 bool CPU::isGlobalInterruptEnabled() const {
     // INTCON bit7 = GIE

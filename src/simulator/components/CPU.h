@@ -25,6 +25,8 @@ private:
     double quartzFrequencyMHz;
     uint8_t prevPortB;
     bool prevRb0Level;
+    bool prevRa4Level;
+
 
     uint8_t portALatch;
     uint8_t portBLatch;
@@ -97,6 +99,7 @@ private:
 
     bool isTimerClockInternal() const;
     int getTimerPrescalerDivisor() const;
+    bool shouldIncrementTimer0OnExternalEdge();
     void incrementTimer0();
     void tickTimer0(int cycles);
 
