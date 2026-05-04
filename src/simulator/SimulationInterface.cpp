@@ -233,7 +233,12 @@ void SimulationInterface::renderPanels() {
             } else {
                 registerValue &= ~(1 << bit);
             }
-            pic.setDataMemory(address, registerValue);
+
+            if (address == PORTA || address == PORTB) {
+                pic.setExternalPortValue(address, registerValue);
+            } else {
+                pic.setDataMemory(address, registerValue);
+            }
         }
 
         ImVec2 itemMin = ImGui::GetItemRectMin();

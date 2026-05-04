@@ -33,6 +33,7 @@ class PIC16F84 {
 
         void setWRegister(int value) { cpu.setWRegister(value); }
         void setDataMemory(int address, int value) { cpu.setDataMemoryValue(address, value); }
+        void setExternalPortValue(int address, int value) { cpu.setExternalPortValue(address, value); }
         void setWdtEnabled(bool enabled) { cpu.setWdtEnabled(enabled); }
         void setQuartzFrequencyMHz(double mhz) { cpu.setQuartzFrequencyMHz(mhz); }
         double getQuartzFrequencyMHz() const { return cpu.getQuartzFrequencyMHz(); }

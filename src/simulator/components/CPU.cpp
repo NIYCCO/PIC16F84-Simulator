@@ -1269,3 +1269,31 @@ void CPU::setDataMemoryValue(int address, int value) {
             return;
     }
 }
+
+void CPU::setExternalPortValue(int address, int value) {
+    const int normalizedAddress = normalizeFileAddress(address);
+    int maskedValue = value & 0xFF;
+
+    if (normalizedAddress == 0x05) {
+        maskedValue &= 0x1F;
+        const int tris = dataMemory.read(0x85) & 0x1F;
+        const int outputMask = (~tris) & 0x1F;
+        const int inputMask = tris & 0x1F;
+        const int currentPins = dataMemory.read(0x05) & 0x1F;
+        const int newPins = (currentPins & outputMask) | (maskedValue & inputMask);
+        dataMemory.write(0x05, newPins & 0x1F);
+        return;
+    }
+
+    if (normalizedAddress == 0x06) {
+        const int tris = dataMemory.read(0x86) & 0xFF;
+        const int outputMask = (~tris) & 0xFF;
+        const int inputMask = tris & 0xFF;
+        const int currentPins = dataMemory.read(0x06) & 0xFF;
+        const int newPins = (currentPins & outputMask) | (maskedValue & inputMask);
+        dataMemory.write(0x06, newPins & 0xFF);
+        return;
+    }
+
+    setDataMemoryValue(normalizedAddress, maskedValue);
+}

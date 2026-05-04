@@ -146,6 +146,7 @@ public:
 
     void setWRegister(int value) { wRegister = value & 0xFF; }
     void setDataMemoryValue(int address, int value);
+    void setExternalPortValue(int address, int value);
 
     uint8_t* getDataMemory() const { return dataMemory.getMemory(); }
 
