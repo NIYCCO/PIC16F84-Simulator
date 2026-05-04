@@ -24,10 +24,9 @@ class SimulationInterface {
     private:
         GLFWwindow* window;
         ImGui::FileBrowser* fileDialog;
+        PIC16F84 pic;
         Editor editor;
         MemoryEditor mem_edit;
-
-        PIC16F84 pic;
 
         bool isFirstLayout;
         bool showAboutPopup;

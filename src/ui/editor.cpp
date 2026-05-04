@@ -101,24 +101,6 @@ void Editor::render(bool simulationRunning) {
     ImGui::Text("Quarz [MHz]");
     ImGui::SameLine();
 
-    static const char* quartzLabels[] = {"1.000", "4.000", "8.000", "16.000", "20.000"};
-    static const double quartzValues[] = {1.0, 4.0, 8.0, 16.0, 20.0};
-    int selectedQuartz = -1;
-    for (int i = 0; i < 5; ++i) {
-        if (quartzFrequencyMHz == quartzValues[i]) {
-            selectedQuartz = i;
-            break;
-        }
-    }
-
-    ImGui::SetNextItemWidth(90.0f);
-    if (ImGui::Combo("##quartzCombo", &selectedQuartz, quartzLabels, 5)) {
-        if (selectedQuartz >= 0 && selectedQuartz < 5) {
-            quartzFrequencyMHz = quartzValues[selectedQuartz];
-        }
-    }
-
-    ImGui::SameLine();
     ImGui::SetNextItemWidth(90.0f);
     if (ImGui::InputDouble("##quartzInput", &quartzFrequencyMHz, 0.0, 0.0, "%.3f")) {
         if (quartzFrequencyMHz < 0.001) {
