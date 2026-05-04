@@ -52,6 +52,10 @@ void CPU::reset() {
     }
 
     eepromUnlockStage = 0;
+    eepromWriteInProgress = false;
+    eepromWriteAddress = 0x00;
+    eepromWriteData = 0x00;
+    eepromWriteRemainingUs = 0.0;
     dataMemory.write(0x88, 0x00); // EECON1
     dataMemory.write(0x89, 0x00); // EECON2
 
@@ -245,6 +249,12 @@ void CPU::handleEecon2Write(int value) {
 
 void CPU::handleEecon1Write(int value) {
     int eecon1 = value & 0x1F; // RD, WR, WREN, WRERR, EEIF
+
+    // Während eines laufenden Schreibvorgangs bleibt WR hardwareseitig gesetzt.
+    if (eepromWriteInProgress) {
+        eecon1 |= (1 << 1);
+    }
+
     dataMemory.write(0x88, eecon1);
 
     if (eecon1 & 0x01) { // RD
@@ -257,16 +267,36 @@ void CPU::handleEecon1Write(int value) {
     if (eecon1 & 0x02) { // WR
         const bool wrenEnabled = (eecon1 & 0x04) != 0;
 
-        if (wrenEnabled && eepromUnlockStage == 2) {
-            const int address = dataMemory.read(0x09) & 0x3F;
-            eeprom[address] = dataMemory.read(0x08) & 0xFF;
-            eecon1 |= (1 << 4); // EEIF
+        if (!eepromWriteInProgress && wrenEnabled && eepromUnlockStage == 2) {
+            eepromWriteInProgress = true;
+            eepromWriteAddress = static_cast<uint8_t>(dataMemory.read(0x09) & 0x3F);
+            eepromWriteData = static_cast<uint8_t>(dataMemory.read(0x08) & 0xFF);
+            eepromWriteRemainingUs = 1000.0; // 1 ms Programmierzeit
+            eecon1 &= ~(1 << 4); // EEIF löschen, bis der Schreibvorgang fertig ist
+            dataMemory.write(0x88, eecon1);
         }
-
-        eecon1 &= ~0x02; // WR nach Abschluss wieder löschen
-        dataMemory.write(0x88, eecon1);
         eepromUnlockStage = 0;
     }
+}
+
+void CPU::tickEepromWrite(double elapsedUs) {
+    if (!eepromWriteInProgress) {
+        return;
+    }
+
+    eepromWriteRemainingUs -= elapsedUs;
+    if (eepromWriteRemainingUs > 0.0) {
+        return;
+    }
+
+    eeprom[eepromWriteAddress & 0x3F] = eepromWriteData;
+    eepromWriteInProgress = false;
+    eepromWriteRemainingUs = 0.0;
+
+    int eecon1 = dataMemory.read(0x88) & 0x1F;
+    eecon1 &= ~(1 << 1); // WR löschen
+    eecon1 |= (1 << 4);  // EEIF setzen
+    dataMemory.write(0x88, eecon1);
 }
 
 
@@ -1200,8 +1230,19 @@ void CPU::step() {
             return;
         }
 
+        tickEepromWrite(4.0 / quartzFrequencyMHz);
         const bool wdtTimeout = tickWdt(1);
         (void)wdtTimeout; // Wakeup/Reset wird in tickWdt intern behandelt.
+
+        if (shouldTriggerAnyInterrupt()) {
+            sleeping = false;
+            enterInterrupt();
+            tickTimer0(2);
+            tickWdt(2);
+            dataMemory.write(0x02, pc & 0xFF);
+            return;
+        }
+
         dataMemory.write(0x02, pc & 0xFF);
         return;
     }
@@ -1223,8 +1264,10 @@ void CPU::step() {
     decodeAndExecute(instructionRegister);
 
     const int stepCycles = static_cast<int>(executedCycles - cyclesBefore);
+    const double elapsedUs = static_cast<double>(stepCycles) * (4.0 / quartzFrequencyMHz);
 
     tickTimer0(stepCycles);
+    tickEepromWrite(elapsedUs);
 
     const bool wdtTimeout = tickWdt(stepCycles);
     if (!wdtTimeout && shouldTriggerAnyInterrupt()) {

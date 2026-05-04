@@ -32,9 +32,14 @@ private:
     uint8_t portBLatch;
     uint8_t eeprom[64];
     int eepromUnlockStage;
+    bool eepromWriteInProgress;
+    uint8_t eepromWriteAddress;
+    uint8_t eepromWriteData;
+    double eepromWriteRemainingUs;
 
     void handleEecon1Write(int value);
     void handleEecon2Write(int value);
+    void tickEepromWrite(double elapsedUs);
 
 
     uint64_t executedCycles;
