@@ -320,8 +320,8 @@ void SimulationInterface::renderPanels() {
         //ImGui::SameLine();
         ImGui::BeginChild("Lauflicht", ImVec2(0.0f, 0.0f), ImGuiChildFlags_AutoResizeY | ImGuiChildFlags_Borders);
 
-            const float ledWidth = 34.0f;
-            const float ledHeight = 22.0f;
+            const float ledWidth = 35.0f;
+            const float ledHeight = 35.0f;
             const float ledSpacing = 8.0f;
             const float rounding = 0.0f;
             const int portBValue = pic.getDataMemory(PORTB) & 0xFF;
