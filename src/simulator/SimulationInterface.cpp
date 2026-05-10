@@ -716,7 +716,11 @@ void SimulationInterface::renderAboutPopup() {
         ImGui::Text("Created by:");
         ImGui::TextLinkOpenURL("Nico Rigsinger", "https://github.com/NIYCCO");
         ImGui::TextLinkOpenURL("Louis Wunsch", "https://github.com/DerPowerbauer");
-        
+
+        ImGui::Separator();
+        ImGui::Text("Dokumentation:");
+        ImGui::TextLinkOpenURL("Klicken Sie hier", "https://github.com/NIYCCO/PIC16F84-Simulator/blob/main/README.md");
+
         if (ImGui::Button("OK")) { ImGui::CloseCurrentPopup(); }
         ImGui::EndPopup();
     }
