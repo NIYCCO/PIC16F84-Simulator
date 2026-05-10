@@ -1,5 +1,6 @@
 #pragma once
 
+#include <string>
 #include <GLFW/glfw3.h>
 
 #include "imgui.h"
@@ -23,16 +24,16 @@ class SimulationInterface {
     private:
         GLFWwindow* window;
         ImGui::FileBrowser* fileDialog;
+        PIC16F84 pic;
         Editor editor;
         MemoryEditor mem_edit;
-
-        PIC16F84 pic;
 
         bool isFirstLayout;
         bool showAboutPopup;
 
         bool initWindow();
         bool initImGui();
+        bool isRunning = false;
         void shutdown();
 
         void render();
@@ -41,4 +42,10 @@ class SimulationInterface {
         void renderPanels();
         void renderAboutPopup();
         void handleFileDialog();
+
+        std::string wregToText(int wreg);
+
+        int getBit(int value, int bit) const {
+            return (value >> bit) & 0x01;
+        }
 };

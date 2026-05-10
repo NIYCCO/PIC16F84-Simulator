@@ -30,8 +30,11 @@ target_link_libraries(imgui PUBLIC glfw OpenGL::GL)
 set(SOURCE_FILES
     src/simulator/SimulationInterface.h
     src/simulator/PIC16F84.h
+    src/simulator/components/instructions.h
     src/simulator/components/CPU.h
     src/simulator/components/ProgramMemory.h
+    src/simulator/components/DataMemory.h
+    src/simulator/components/Stack.h
     src/ui/editor.h
 
     src/main.cpp
@@ -39,6 +42,8 @@ set(SOURCE_FILES
     src/simulator/PIC16F84.cpp
     src/simulator/components/CPU.cpp
     src/simulator/components/ProgramMemory.cpp
+    src/simulator/components/DataMemory.cpp
+    src/simulator/components/Stack.cpp
     src/ui/editor.cpp
     external/TextEditor.cpp
 )
@@ -56,4 +61,6 @@ add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
     "${CMAKE_CURRENT_SOURCE_DIR}/assets"
     "$<TARGET_FILE_DIR:${PROJECT_NAME}>/assets"
+
+    COMMAND ${CMAKE_COMMAND} -E rm -f "${CMAKE_CURRENT_SOURCE_DIR}/imgui.ini"
 )

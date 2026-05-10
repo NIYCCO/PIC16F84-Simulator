@@ -9,9 +9,10 @@ static const char* defaultText =
 "// Welcome to the PIC16F84 Simulator!\n"
 "// Open a .lst file\n";
 
-Editor::Editor() {
+Editor::Editor(PIC16F84 &pic) : pic(&pic) {
     editor.SetText(defaultText);
     editor.SetReadOnlyEnabled(true);
+    editor.SetShowScrollbarMiniMapEnabled(false);
 
     editor.SetLineDecorator(18.0f, [this](TextEditor::Decorator &decorator) {
         const int line = decorator.line;
@@ -40,11 +41,14 @@ Editor::Editor() {
         }
 
     });
+
+    quartzFrequencyMHz = this->pic->getQuartzFrequencyMHz();
 }
 
 void Editor::openFile(const std::string &path) {
     try {
         clearBreakpoints();
+
         std::ifstream stream(path.c_str());
         std::string text;
 
@@ -56,28 +60,71 @@ void Editor::openFile(const std::string &path) {
         stream.close();
 
         editor.SetText(text);
+
     } catch(const std::exception& e) {
         std::cerr << e.what() << '\n';
     }
 }
 
-void Editor::render() {
+void Editor::render(bool simulationRunning) {
     ImGui::Begin("Text Editor", nullptr, ImGuiWindowFlags_NoMove);
+
+    ImGui::BeginDisabled(simulationRunning);
     if (ImGui::Button("Step in", ImVec2(80, 0))) {
         std::cout << "Step in button clicked!" << std::endl;
+        stepInRequested = true;
     }
-    ImGui::SameLine();
+    /* ImGui::SameLine();
     if (ImGui::Button("Step out", ImVec2(80, 0))) {
         std::cout << "Step out button clicked!" << std::endl;
     }
     ImGui::SameLine();
     if (ImGui::Button("Step over", ImVec2(80, 0))) {
         std::cout << "Step over button clicked!" << std::endl;
-    }
+    } */
+    ImGui::EndDisabled();
     ImGui::SameLine();
     if (ImGui::Button("Go", ImVec2(80, 0))) {
         std::cout << "Go button clicked!" << std::endl;
+        goRequested = true;
     }
+    ImGui::SameLine();
+
+    ImGui::BeginDisabled(simulationRunning);
+    if (ImGui::Button("Reset", ImVec2(80, 0))) {
+        std::cout << "Reset button clicked!" << std::endl;
+        resetRequested = true;
+    }
+    ImGui::EndDisabled();
+
+    ImGui::SameLine();
+    ImGui::Text("Quarz [MHz]");
+    ImGui::SameLine();
+
+    ImGui::SetNextItemWidth(90.0f);
+    if (ImGui::InputDouble("##quartzInput", &quartzFrequencyMHz, 0.0, 0.0, "%.3f")) {
+        if (quartzFrequencyMHz < 0.001) {
+            quartzFrequencyMHz = 0.001;
+        }
+    }
+
+    pic->setQuartzFrequencyMHz(quartzFrequencyMHz);
+    const double runtimeUs = pic->getExecutedTimeUs();
+
+    char laufzeitText[96];
+    snprintf(laufzeitText, sizeof(laufzeitText), "Laufzeit: %.3f \xC2\xB5s", runtimeUs);
+
+    const char* maxText = "Laufzeit: 0000000000.000 \xC2\xB5s";
+    ImVec2 maxTextSize = ImGui::CalcTextSize(maxText);
+    float fixedButtonWidth = maxTextSize.x + ImGui::GetStyle().FramePadding.x * 2.0f;
+    float rightEdgeX = ImGui::GetWindowWidth() - fixedButtonWidth - ImGui::GetStyle().WindowPadding.x;
+    ImGui::SameLine(rightEdgeX);
+
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImGui::GetStyleColorVec4(ImGuiCol_Button));
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImGui::GetStyleColorVec4(ImGuiCol_Button));
+    ImGui::Button(laufzeitText, ImVec2(fixedButtonWidth, 0.0f));
+    ImGui::PopStyleColor(2);
+
     ImGui::Spacing();
     ImGui::BeginChild("TextEditor", ImVec2(0.0f, 0.0f), ImGuiChildFlags_None);
     editor.Render("TextEditor");
@@ -103,5 +150,30 @@ void Editor::toggleBreakpoint(int line) {
 
 void Editor::displayStepMarker(int line) {
     editor.ClearMarkers();
-    editor.AddMarker(line-1, 0, IM_COL32(128, 0, 32, 128), "", "");
+    editor.AddMarker(line, 0, IM_COL32( 32,  96, 160, 255), "", "");
+    editor.ScrollToLine(line, TextEditor::Scroll::alignMiddle);
+}
+
+bool Editor::handleStepInRequest() {
+    if (stepInRequested) {
+        stepInRequested = false;
+        return true;
+    }
+    return false;
+}
+
+bool Editor::handleGoRequest() {
+    if (goRequested) {
+        goRequested = false;
+        return true;
+    }
+    return false;
+}
+
+bool Editor::handleResetRequest() {
+    if (resetRequested) {
+        resetRequested = false;
+        return true;
+    }
+    return false;
 }

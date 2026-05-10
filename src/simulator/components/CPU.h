@@ -1,15 +1,49 @@
 #pragma once
 
+#include <cstdint>
+
 #include "ProgramMemory.h"
+#include "DataMemory.h"
+#include "Stack.h"   
 
 class CPU {
 private:
     const ProgramMemory& programMemory;
+    DataMemory& dataMemory;       
 
     int pc;
     int instructionRegister;
     int wRegister;
-    int statusRegister;
+
+    Stack stack;  
+
+    int timerPrescalerCounter;
+    bool tmr0WrittenThisStep;
+    bool sleeping;
+    bool wdtEnabled;
+    double wdtCounterUs;
+    double quartzFrequencyMHz;
+    uint8_t prevPortB;
+    bool prevRb0Level;
+    bool prevRa4Level;
+
+
+    uint8_t portALatch;
+    uint8_t portBLatch;
+    uint8_t eeprom[64];
+    int eepromUnlockStage;
+    bool eepromWriteInProgress;
+    uint8_t eepromWriteAddress;
+    uint8_t eepromWriteData;
+    double eepromWriteRemainingUs;
+
+    void handleEecon1Write(int value);
+    void handleEecon2Write(int value);
+    void tickEepromWrite(double elapsedUs);
+
+
+    uint64_t executedCycles;
+
 
     static const int STATUS_C  = 0;
     static const int STATUS_DC = 1;
@@ -17,7 +51,6 @@ private:
 
     void setStatusBit(int bit, bool value);
     bool getStatusBit(int bit) const;
-
     void updateZeroFlag(int value);
 
     void executeMovlw(int instruction);
@@ -27,14 +60,115 @@ private:
     void executeSublw(int instruction);
     void executeAddlw(int instruction);
     void executeGoto(int instruction);
+    void executeMovwf(int instruction);   
+    void executeMovf(int instruction);
+    void executeClrf(int instruction);
+    void executeClrw(int instruction);   
+    void executeAddwf(int instruction);
+    void executeSubwf(int instruction);
+    void executeComf(int instruction);
+    void executeAndwf(int instruction);
+    void executeIorwf(int instruction);
+    void executeXorwf(int instruction);
+    void executeSwapf(int instruction);
+    void executeDecf(int instruction);
+    void executeIncf(int instruction);
+    void executeDecfsz(int instruction);
+    void executeIncfsz(int instruction);
+    void executeRlf(int instruction);
+    void executeRrf(int instruction);
+    void executeBcf(int instruction);
+    void executeBsf(int instruction);
+    void executeBtfsc(int instruction);
+    void executeBtfss(int instruction);
+    void executeCall(int instruction);
+    void executeReturn(int instruction);
+    void executeRetlw(int instruction);
+    void executeRetfie(int instruction);
+    void executeNop();
+    void executeSleep();
+    void executeClrwdt();
 
     void decodeAndExecute(int instruction);
 
+    int getRP0() const;
+    int normalizeFileAddress(int rawAddress) const;
+    int resolveDirectAddress(int f) const;
+    int resolveWriteAddress(int f) const;
+    int readFileRegister(int f) const;
+    void writeFileRegister(int f, int value);
+    void refreshPcFromPcl();
+
+    int buildCallGotoTarget(int instruction) const;
+
+
+    bool isTimerClockInternal() const;
+    int getTimerPrescalerDivisor() const;
+    bool shouldIncrementTimer0OnExternalEdge();
+    void incrementTimer0();
+    void tickTimer0(int cycles);
+
+    bool isPrescalerAssignedToWdt() const;
+    int getWdtPrescalerDivisor() const;
+    bool tickWdt(int cycles);
+    void clearWdt();
+    void handleWdtTimeout();
+    void performWdtReset();
+
+
+    bool isGlobalInterruptEnabled() const;
+    bool isTimer0InterruptEnabled() const;
+    bool isTimer0InterruptFlagSet() const;
+    bool shouldTriggerTimer0Interrupt() const;
+    void enterInterrupt();
+    void updateExternalInterruptFlags();
+    bool shouldTriggerAnyInterrupt() const;
+
+    void applyPortLatchToPins(int portAddr, int trisAddr, int latchValue);
+
+
+
+
+
 public:
-    CPU(const ProgramMemory& pm);
+    CPU(const ProgramMemory& pm, DataMemory& dm);   
 
     void reset();
     int fetch();
     void step();
     void printState() const;
+
+    int getPC() const { return pc; }
+    int getInstructionRegister() const { return instructionRegister; }
+    int getWRegister() const { return wRegister & 0xFF; }
+    int getStatusRegister() const { return dataMemory.read(0x03); }  // NEU
+    uint64_t getExecutedCycles() const { return executedCycles; }
+    double getExecutedTimeUs() const;
+
+    int getStackPointer() const { return stack.getStackPointer(); }
+    int getStackValue(int index) const { return stack.getStackValue(index); }
+
+    bool getZeroFlag() const { return getStatusBit(STATUS_Z); }
+    bool getDigitCarryFlag() const { return getStatusBit(STATUS_DC); }
+    bool getCarryFlag() const { return getStatusBit(STATUS_C); }
+
+    void setWRegister(int value) { wRegister = value & 0xFF; }
+    void setDataMemoryValue(int address, int value);
+    void setExternalPortValue(int address, int value);
+
+    uint8_t* getDataMemory() const { return dataMemory.getMemory(); }
+
+    void setWdtEnabled(bool enabled) {
+        wdtEnabled = enabled;
+        if (!wdtEnabled) clearWdt();
+    }
+
+    bool isWdtEnabled() const { return wdtEnabled; }
+    bool isSleeping() const { return sleeping; }
+    int getVtCounter() const { return timerPrescalerCounter; }
+    double getWdtCounterUs() const { return wdtCounterUs; }
+    double getWdtTimeoutUs() const;
+    void setQuartzFrequencyMHz(double mhz);
+    double getQuartzFrequencyMHz() const { return quartzFrequencyMHz; }
+
 };
