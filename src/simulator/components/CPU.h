@@ -36,6 +36,7 @@ private:
     uint8_t eepromWriteAddress;
     uint8_t eepromWriteData;
     double eepromWriteRemainingUs;
+    double simulatedTimeUs;
 
     void handleEecon1Write(int value);
     void handleEecon2Write(int value);
@@ -143,7 +144,7 @@ public:
     int getWRegister() const { return wRegister & 0xFF; }
     int getStatusRegister() const { return dataMemory.read(0x03); }  // NEU
     uint64_t getExecutedCycles() const { return executedCycles; }
-    double getExecutedTimeUs() const;
+    double getExecutedTimeUs() const { return simulatedTimeUs; }
 
     int getStackPointer() const { return stack.getStackPointer(); }
     int getStackValue(int index) const { return stack.getStackValue(index); }

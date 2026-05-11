@@ -21,6 +21,7 @@ void CPU::reset() {
 
     // Laufzeit
     executedCycles = 0;
+    simulatedTimeUs = 0.0;
 
     // Sleep/WDT
     sleeping = false;
@@ -576,10 +577,6 @@ double CPU::getWdtTimeoutUs() const {
     if (!wdtEnabled) return 0;
     const int prescaler = isPrescalerAssignedToWdt() ? getWdtPrescalerDivisor() : 1;
     return 18000.0 * static_cast<double>(prescaler);
-}
-
-double CPU::getExecutedTimeUs() const {
-    return static_cast<double>(executedCycles) * (4.0 / quartzFrequencyMHz);
 }
 
 void CPU::setQuartzFrequencyMHz(double mhz) {
@@ -1216,6 +1213,8 @@ void CPU::decodeAndExecute(int instruction) {
 }
 
 void CPU::step() {
+    const double instructionCycleUs = 4.0 / quartzFrequencyMHz;
+
     // Wenn CPU schläft: keine Instruktion fetchen/ausführen.
     // Externe Interrupt-Flags und WDT laufen aber weiter.
     if (sleeping) {
@@ -1226,11 +1225,13 @@ void CPU::step() {
             enterInterrupt();
             tickTimer0(2);
             tickWdt(2);
+            simulatedTimeUs += 2.0 * instructionCycleUs;
             dataMemory.write(0x02, pc & 0xFF);
             return;
         }
 
-        tickEepromWrite(4.0 / quartzFrequencyMHz);
+        simulatedTimeUs += instructionCycleUs;
+        tickEepromWrite(instructionCycleUs);
         const bool wdtTimeout = tickWdt(1);
         (void)wdtTimeout; // Wakeup/Reset wird in tickWdt intern behandelt.
 
@@ -1239,6 +1240,7 @@ void CPU::step() {
             enterInterrupt();
             tickTimer0(2);
             tickWdt(2);
+            simulatedTimeUs += 2.0 * instructionCycleUs;
             dataMemory.write(0x02, pc & 0xFF);
             return;
         }
@@ -1264,7 +1266,8 @@ void CPU::step() {
     decodeAndExecute(instructionRegister);
 
     const int stepCycles = static_cast<int>(executedCycles - cyclesBefore);
-    const double elapsedUs = static_cast<double>(stepCycles) * (4.0 / quartzFrequencyMHz);
+    const double elapsedUs = static_cast<double>(stepCycles) * instructionCycleUs;
+    simulatedTimeUs += elapsedUs;
 
     tickTimer0(stepCycles);
     tickEepromWrite(elapsedUs);
@@ -1274,6 +1277,7 @@ void CPU::step() {
         enterInterrupt();
         tickTimer0(2);
         tickWdt(2);
+        simulatedTimeUs += 2.0 * instructionCycleUs;
     }
 
 
