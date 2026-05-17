@@ -658,10 +658,12 @@ void SimulationInterface::renderPanels() {
 
     if (editor.handleGoRequest()) {
         isRunning = !isRunning;
+        goStepAccumulator = 0.0;
     }
 
     if (editor.handleResetRequest()) {
         pic.reset();
+        goStepAccumulator = 0.0;
         int line = pic.getLineForAddress(pic.getPC());
         editor.displayStepMarker(line);
     }
@@ -677,18 +679,29 @@ void SimulationInterface::renderPanels() {
     ImGui::End();
 
     if (isRunning) {
-    auto breakpoints = editor.getBreakpoints();
+        auto breakpoints = editor.getBreakpoints();
 
-    int currentLine = pic.getLineForAddress(pic.getPC());
+        goStepAccumulator += pic.getQuartzFrequencyMHz() / 4.0;
+        int stepsToRun = static_cast<int>(goStepAccumulator);
+        if (stepsToRun > 100) {
+            stepsToRun = 100;
+        }
+        goStepAccumulator -= static_cast<double>(stepsToRun);
 
-    if (breakpoints.find(currentLine) != breakpoints.end()) {
-        isRunning = false;
-    } else {
-        pic.step();
-        int line = pic.getLineForAddress(pic.getPC());
-        editor.displayStepMarker(line);
+        while (isRunning && stepsToRun-- > 0) {
+            int currentLine = pic.getLineForAddress(pic.getPC());
+
+            if (breakpoints.find(currentLine) != breakpoints.end()) {
+                isRunning = false;
+                goStepAccumulator = 0.0;
+                break;
+            }
+
+            pic.step();
+            int line = pic.getLineForAddress(pic.getPC());
+            editor.displayStepMarker(line);
+        }
     }
-}
 }
 
 void SimulationInterface::handleFileDialog() {

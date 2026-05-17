@@ -34,6 +34,7 @@ class SimulationInterface {
         bool initWindow();
         bool initImGui();
         bool isRunning = false;
+        double goStepAccumulator = 0.0;
         void shutdown();
 
         void render();
